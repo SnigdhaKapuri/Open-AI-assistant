@@ -98,7 +98,8 @@ def OpenApp(app, sess=requests.session()):
         "linkedin": "https://www.linkedin.com/login",
         "gmail": "https://mail.google.com",
         "whatsapp": "https://web.whatsapp.com",
-        "github": "https://github.com/login"
+        "github": "https://github.com/login",
+        "snapchat": "https://www.snapchat.com"
     }
 
     try:
