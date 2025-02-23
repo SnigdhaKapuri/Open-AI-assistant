@@ -88,34 +88,36 @@ def PlayYoutube(query):
     return True
 
 def OpenApp(app, sess=requests.session()):
+    
+    official_links = {
+        "youtube": "https://www.youtube.com",
+        "facebook": "https://www.facebook.com/login",
+        "canva": "https://www.canva.com/login",
+        "instagram": "https://www.instagram.com",
+        "twitter": "https://twitter.com/login",
+        "linkedin": "https://www.linkedin.com/login",
+        "gmail": "https://mail.google.com",
+        "whatsapp": "https://web.whatsapp.com",
+        "github": "https://github.com/login"
+    }
+
     try:
+        
         appopen(app, match_closest=True, output=True, throw_error=True)
         return True
     except:
-        def extract_links(html):
-            if html is None:
-                return []
-            soup = BeautifulSoup(html, 'html.parser')
-            links = soup.find_all('a', {'jsname': 'UWckNb'})
-            return [link.get('href') for link in links]
+        app = app.lower()  
 
-        def search_google(query):
-            url = f"https://www.google.com/search?q={query}"
-            headers = {"User-Agent": useragent}
-            response = sess.get(url, headers=headers)
-
-            if response.status_code == 200:
-                return response.text
-            else:
-                print("Failed to retrieve search results.")
-            return None
+        if app in official_links:
+            print(f"Opening {app} official login page...")
+            webopen(official_links[app])  
+        else:
+           
+            print(f"Searching for the official website of {app}...")
+            search_query = f"official site of {app}"
+            google_search_url = f"https://www.google.com/search?q={search_query}"
+            webopen(google_search_url)
         
-        html = search_google(app)
-
-        if html:
-            link = extract_links(html)[0]
-            webopen(link)
-    
         return True
 
 def CloseApp(app):
