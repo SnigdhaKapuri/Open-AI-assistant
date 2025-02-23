@@ -76,21 +76,23 @@ class ChatSection(QWidget):
     def __init__(self):
         super(ChatSection, self).__init__()
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(-10, 40, 40, 100)
-        layout.setSpacing(-100)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
         self.chat_text_edit = QTextEdit()
         self.chat_text_edit.setReadOnly(True)
         self.chat_text_edit.setTextInteractionFlags(Qt.NoTextInteraction)
         self.chat_text_edit.setFrameStyle(QFrame.NoFrame)
+        self.chat_text_edit.setStyleSheet("""
+            QTextEdit {
+                background-color: #1e1e1e;
+                color: #ffffff;
+                border-radius: 10px;
+                padding: 10px;
+                font-size: 14px;
+            }
+        """)
         layout.addWidget(self.chat_text_edit)
-        self.setStyleSheet("background-color: black;")
-        layout.setSizeConstraint(QVBoxLayout.SetDefaultConstraint)
-        layout.setStretch(1, 1)
-        self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
-        text_color = QColor(Qt.blue)
-        text_color_text = QTextCharFormat()
-        text_color_text.setForeground(text_color)
-        self.chat_text_edit.setCurrentCharFormat(text_color_text)
+        self.setStyleSheet("background-color: #121212;")
         self.gif_label = QLabel()
         self.gif_label.setStyleSheet("border: none;")
         movie = QMovie(GraphicsDirectoryPath('Jarvis.gif'))
@@ -105,53 +107,10 @@ class ChatSection(QWidget):
         self.label.setStyleSheet("color: white; font-size:16px; margin-right: 195px; border: none; margin-top: -30px;")
         self.label.setAlignment(Qt.AlignRight)
         layout.addWidget(self.label)
-        layout.setSpacing(-10)
-        layout.addWidget(self.gif_label)
-        font = QFont()
-        font.setPointSize(13)
-        self.chat_text_edit.setFont(font)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.loadMessages)
         self.timer.timeout.connect(self.SpeechRecogText)
         self.timer.start(5)
-        self.chat_text_edit.viewport().installEventFilter(self)
-        self.setStyleSheet(""" 
-            QScrollBar:vertical {
-                border: none;
-                background: black;
-                width:10px;
-                margin : 0px 0px 0px 0px;
-            }
-
-            QScrollBar::handle:vertical {
-                background: white;
-                min-height: 20px;
-            }
-
-            QScrollBar::add-line:vertical {
-                background: black;
-                subcontrol-position: bottom;
-                subcontrol-origin: margin;
-                height: 10px;
-            }
-
-            QScrollBar::sub-line:vertical {
-                background: black;
-                subcontrol-position: top;
-                subcontrol-origin: margin;
-                height: 10px;
-            }
-
-            QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
-                border:none;
-                background: none;
-                color: none;
-            }
-
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: none;
-            }
-        """)
 
     def loadMessages(self):
         global old_chat_message
@@ -174,28 +133,13 @@ class ChatSection(QWidget):
             messages = file.read()
             self.label.setText(messages)
 
-    def load_icon(self, path, width=60, height=60):
-        pixmap = QPixmap(path)
-        new_pixmap = pixmap.scaled(width, height)
-        self.icon_label.setPixmap(new_pixmap)
-
-    def toggle_icon(self, event=None):
-        if self.toggled:
-            self.load_icon(GraphicsDirectoryPath('voice.png'), 60, 60)
-            MicButtonInitialed()
-        else:
-            self.load_icon(GraphicsDirectoryPath('mic.png'), 60, 60)
-            MicButtonClosed()
-
-        self.toggled = not self.toggled
-
     def addMessage(self, message, color):
         cursor = self.chat_text_edit.textCursor()
         format = QTextCharFormat()
         formatm = QTextBlockFormat()
         formatm.setTopMargin(10)
         formatm.setLeftMargin(10)
-        formatm.setForeground(QColor(color))
+        format.setForeground(QColor(color))
         cursor.setCharFormat(format)
         cursor.setBlockFormat(formatm)
         cursor.insertText(message + "\n")
@@ -235,7 +179,7 @@ class InitialScreen(QWidget):
         self.setLayout(content_layout)
         self.setFixedHeight(screen_height)
         self.setFixedWidth(screen_width)
-        self.setStyleSheet("background-color: black;")
+        self.setStyleSheet("background-color: #121212;")
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.SpeechRecogText)
         self.timer.start(5)
@@ -272,7 +216,7 @@ class MessageScreen(QWidget):
         chat_section = ChatSection()
         layout.addWidget(chat_section)
         self.setLayout(layout)
-        self.setStyleSheet("background-color: black;")
+        self.setStyleSheet("background-color: #121212;")
         self.setFixedHeight(screen_height)
         self.setFixedWidth(screen_width)
 
@@ -399,7 +343,7 @@ class MainWindow(QMainWindow):
         stacked_widget.addWidget(initial_screen)
         stacked_widget.addWidget(message_screen)
         self.setGeometry(0, 0, screen_width, screen_height)
-        self.setStyleSheet("background-color: black;")
+        self.setStyleSheet("background-color: #121212;")
         top_bar = CustomTopBar(self, stacked_widget)
         self.setMenuWidget(top_bar)
         self.setCentralWidget(stacked_widget)

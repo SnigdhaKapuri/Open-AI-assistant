@@ -12,8 +12,8 @@
         let recognition;
 
         function startRecognition() {
-            recognition = new webkitSpeechRecognition() || new SpeechRecognition();
-            recognition.lang = 'en';
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = "en";
             recognition.continuous = true;
 
             recognition.onresult = function(event) {
@@ -28,8 +28,10 @@
         }
 
         function stopRecognition() {
-            recognition.stop();
-            output.innerHTML = "";
+            if (recognition) {
+                recognition.stop();
+                output.innerHTML = "";
+            }
         }
     </script>
 </body>

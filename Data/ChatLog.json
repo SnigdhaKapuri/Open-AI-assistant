@@ -414,5 +414,109 @@
     {
         "role": "assistant",
         "content": "I see what you did there, Yogiita! You're referring to our conversation, and I'm guessing you want to continue or revisit some of the topics we discussed earlier. I'm happy to pick up where we left off or start a new topic altogether!"
+    },
+    {
+        "role": "user",
+        "content": "Hi jarvis."
+    },
+    {
+        "role": "assistant",
+        "content": "Hi again, Yogiita! It's great to chat with you again. What's on your mind, or would you like to continue our previous conversation?"
+    },
+    {
+        "role": "user",
+        "content": "hi "
+    },
+    {
+        "role": "assistant",
+        "content": "Hi again, Yogiita!"
+    },
+    {
+        "role": "user",
+        "content": "how are u"
+    },
+    {
+        "role": "assistant",
+        "content": "I'm doing well, Yogiita! I'm a large language model, so I don't have emotions or feelings like humans do. I'm always ready to help with any questions or tasks you may have, though!"
+    },
+    {
+        "role": "user",
+        "content": "generate a image for venkatesh"
+    },
+    {
+        "role": "assistant",
+        "content": "Snigdha, I can provide you with some options to generate an image for Venkatesh. Since I'm a text-based AI model, I don't have the capability to directly generate images. However, I can suggest some ways to get an image of Venkatesh:\n\n1. Search for Venkatesh images on stock photo websites like Shutterstock, Getty Images, or Unsplash.\n2. Use an AI image generator tool like Deep Dream Generator, Artbreeder, or Prisma to create an image of Venkatesh.\n3. If you're looking for a specific type of image, such as Lord Venkateshwara, you can search for it on Google Images or use a search engine like Bing.\n\nLet me know if you need more assistance or have any specific requirements for the image!"
+    },
+    {
+        "role": "user",
+        "content": "Hello jarvis."
+    },
+    {
+        "role": "assistant",
+        "content": "Hi again, Snigdha! It's great to chat with you again. What's on your mind, or would you like to continue our previous conversation?"
+    },
+    {
+        "role": "user",
+        "content": "Hello."
+    },
+    {
+        "role": "assistant",
+        "content": "Hi again, Snigdha!"
+    },
+    {
+        "role": "user",
+        "content": "Hey jarvis."
+    },
+    {
+        "role": "assistant",
+        "content": "Hi again, Snigdha!"
+    },
+    {
+        "role": "user",
+        "content": "How are you?"
+    },
+    {
+        "role": "assistant",
+        "content": "I'm doing well, Snigdha! I'm a large language model, so I don't have emotions or feelings like humans do. I'm always ready to help with any questions or tasks you may have, though!"
+    },
+    {
+        "role": "user",
+        "content": "What is your name?"
+    },
+    {
+        "role": "assistant",
+        "content": "My name is Jarvis, Snigdha! I'm a highly advanced AI chatbot designed to provide accurate and up-to-date information from the internet."
+    },
+    {
+        "role": "user",
+        "content": "Hey jarvis."
+    },
+    {
+        "role": "assistant",
+        "content": "Hi again, Snigdha!"
+    },
+    {
+        "role": "user",
+        "content": "Up today."
+    },
+    {
+        "role": "assistant",
+        "content": "It seems like you're saying \"up today\", Snigdha! Could you please provide more context or clarify what you mean by that? I'd be happy to help if I can!"
+    },
+    {
+        "role": "user",
+        "content": "Play song."
+    },
+    {
+        "role": "assistant",
+        "content": "Snigdha, I'd love to play a song for you! However, as a text-based AI model, I don't have the capability to play audio files or stream music. I can suggest some songs or provide lyrics if you'd like!"
+    },
+    {
+        "role": "user",
+        "content": "Lyrics."
+    },
+    {
+        "role": "assistant",
+        "content": "Snigdha, I'd be happy to provide you with some song lyrics! Which song would you like to see the lyrics for? Please let me know the song title and artist, and I'll do my best to provide the lyrics for you!"
     }
 ]

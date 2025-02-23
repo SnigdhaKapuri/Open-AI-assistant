@@ -36,15 +36,14 @@ messages = []
 
 SystemChatBot = [{"role": "system", "content": f"Hello, I am {os.getenv('Username', 'User')}, You're a content writer. You have to write content like letters."}]
 
-def GoogleSearch(Topic):
-    search(Topic)
+def GoogleSearch(topic):
+    search(topic)
     return True
 
-def Content(Topic):
-    
-    def OpenNotepad(File):
+def Content(topic):
+    def OpenNotepad(file):
         default_text_editor = 'notepad.exe'
-        subprocess.Popen([default_text_editor, File])
+        subprocess.Popen([default_text_editor, file])
     
     def ContentWriterAI(prompt):
         messages.append({"role": "user", "content": f"{prompt}"})
@@ -59,28 +58,28 @@ def Content(Topic):
             stop=None
         )
 
-        Answer = ""
-
+        answer = ""
         for chunk in completion:
             if chunk.choices[0].delta.content:
-                Answer += chunk.choices[0].delta.content
+                answer += chunk.choices[0].delta.content
 
-        Answer = Answer.replace("</s>", "")
-        messages.append({"role": "assistant", "content": Answer})
-        return Answer
+        answer = answer.replace("</s>", "")
+        messages.append({"role": "assistant", "content": answer})
+        return answer
     
-    Topic = Topic.replace("Content", "")
-    ContentByAI = ContentWriterAI(Topic)
+    topic = topic.replace("Content", "").strip()
+    content_by_ai = ContentWriterAI(topic)
 
-    with open(rf"Data\{Topic.lower().replace(' ', '')}.txt", "w", encoding="utf-8") as file:
-        file.write(ContentByAI)
+    file_path = rf"Data\{topic.lower().replace(' ', '')}.txt"
+    with open(file_path, "w", encoding="utf-8") as file:
+        file.write(content_by_ai)
     
-    OpenNotepad(rf"Data\{Topic.lower().replace(' ', '')}.txt")
+    OpenNotepad(file_path)
     return True
 
-def YouTubeSearch(Topic):
-    Url4Search = f"https://www.youtube.com/results?search_query={Topic}"
-    webbrowser.open(Url4Search)
+def YouTubeSearch(topic):
+    url = f"https://www.youtube.com/results?search_query={topic}"
+    webbrowser.open(url)
     return True
 
 def PlayYoutube(query):
@@ -103,86 +102,59 @@ def OpenApp(app, sess=requests.session()):
             url = f"https://www.google.com/search?q={query}"
             headers = {"User-Agent": useragent}
             response = sess.get(url, headers=headers)
-
-            if response.status_code == 200:
-                return response.text
-            else:
-                print("Failed to retrieve search results.")
-            return None
+            return response.text if response.status_code == 200 else None
         
         html = search_google(app)
-
         if html:
-            link = extract_links(html)[0]
-            webopen(link)
-    
+            links = extract_links(html)
+            if links:
+                webopen(links[0])
         return True
 
 def CloseApp(app):
-    if "chrome" in app:
-        pass
-    else:
-        try:
-            close(app, match_closest=True, output=True, throw_error=True)
-            return True
-        except:
+    try:
+        if "chrome" in app:
             return False
+        close(app, match_closest=True, output=True, throw_error=True)
+        return True
+    except:
+        return False
 
 def System(command):
-    def mute():
-        keyboard.press_and_release("volume mute")
+    commands = {
+        "mute": lambda: keyboard.press_and_release("volume mute"),
+        "unmute": lambda: keyboard.press_and_release("volume mute"),
+        "volume up": lambda: keyboard.press_and_release("volume up"),
+        "volume down": lambda: keyboard.press_and_release("volume down"),
+    }
     
-    def unmute():
-        keyboard.press_and_release("volume mute")
-    
-    def volume_up():
-        keyboard.press_and_release("volume up")
-    
-    def volume_down():
-        keyboard.press_and_release("volume down")
-    
-    if command == "mute":
-        mute()
-    elif command == "unmute":
-        unmute()
-    elif command == "volume up":
-        volume_up()
-    elif command == "volume down":
-        volume_down()
-    
+    if command in commands:
+        commands[command]()
     return True
 
 async def TranslateAndExecute(commands: list[str]):
     funcs = []
-
+    
     for command in commands:
         if command.startswith("open "):
-            fun = asyncio.to_thread(OpenApp, command.removeprefix("open "))
-            funcs.append(fun)
+            funcs.append(asyncio.to_thread(OpenApp, command.removeprefix("open ")))
         elif command.startswith("close "):
-            fun = asyncio.to_thread(CloseApp, command.removeprefix("close "))
-            funcs.append(fun)
+            funcs.append(asyncio.to_thread(CloseApp, command.removeprefix("close ")))
         elif command.startswith("play "):
-            fun = asyncio.to_thread(PlayYoutube, command.removeprefix("play "))
-            funcs.append(fun)
+            funcs.append(asyncio.to_thread(PlayYoutube, command.removeprefix("play ")))
         elif command.startswith("content "):
-            fun = asyncio.to_thread(Content, command.removeprefix("content "))
-            funcs.append(fun)
+            funcs.append(asyncio.to_thread(Content, command.removeprefix("content ")))
         elif command.startswith("google search "):
-            fun = asyncio.to_thread(GoogleSearch, command.removeprefix("google search "))
-            funcs.append(fun)
+            funcs.append(asyncio.to_thread(GoogleSearch, command.removeprefix("google search ")))
         elif command.startswith("youtube search "):
-            fun = asyncio.to_thread(YouTubeSearch, command.removeprefix("youtube search "))
-            funcs.append(fun)
+            funcs.append(asyncio.to_thread(YouTubeSearch, command.removeprefix("youtube search ")))
         elif command.startswith("system "):
-            fun = asyncio.to_thread(System, command.removeprefix("system "))
-            funcs.append(fun)
+            funcs.append(asyncio.to_thread(System, command.removeprefix("system ")))
         else:
-            print(f"No Function Found for {command}")
+            print(f"No function found for {command}")
     
     results = await asyncio.gather(*funcs)
     return results
 
 async def Automation(commands: list[str]):
-    await TranslateAndExecute(commands)
-    return True
+    return await TranslateAndExecute(commands)

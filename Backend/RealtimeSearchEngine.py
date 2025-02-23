@@ -4,114 +4,112 @@ from json import load, dump
 import datetime
 from dotenv import dotenv_values
 import sys
+import os
 
+# Load environment variables
 env_vars = dotenv_values(".env")
 
-Username = env_vars.get("Username")
-Assistantname = env_vars.get("Assistantname")
+Username = env_vars.get("Username", "User")
+Assistantname = env_vars.get("Assistantname", "Assistant")
 GroqAPIKey = env_vars.get("GroqAPIKey")
 
+# Initialize Groq client
 client = Groq(api_key=GroqAPIKey)
 
-System = f"""Hello, I am {Username}, You are a very accurate and advanced AI chatbot named {Assistantname} which has real-time up-to-date information from the internet.
-*** Provide Answers In a Professional Way, make sure to add full stops, commas, question marks, and use proper grammar.***
-*** Just answer the question from the provided data in a professional way. ***"""
+# System message
+System = f"""Hello, I am {Username}. You are an advanced AI chatbot named {Assistantname} with real-time access to information.
+*** Provide answers professionally, ensuring proper grammar, punctuation, and clarity. ***
+*** Just answer the question accurately and concisely. ***"""
 
 # Load chat logs
+chat_log_path = os.path.join("Data", "ChatLog.json")
+if not os.path.exists("Data"):
+    os.makedirs("Data")
+
 try:
-    with open(r"Data\ChatLog.json", "r") as f:
+    with open(chat_log_path, "r") as f:
         messages = load(f)
-except Exception:
-    with open(r"Data\ChatLog.json", "w") as f:
-        dump([], f)
+except (FileNotFoundError, ValueError):
+    messages = []
 
-# Function to search Google
-def GoggleSearch(query):
-    results = list(search(query, advanced=True, num_results=5))
-    Answer = f"The search results for '{query}' are:\n[start]\n"
+# Google Search Function
+def GoogleSearch(query):
+    try:
+        results = list(search(query, advanced=True, num_results=5))
+        answer = f"Search results for '{query}':\n[start]\n"
 
-    for i in results:
-        Answer += f"Title: {i.title}\nDescription: {i.description}\n\n"
+        for i in results:
+            answer += f"Title: {i.title}\nDescription: {i.description}\n\n"
 
-    Answer += "[end]"
-    print(Answer)
-    return Answer
+        answer += "[end]"
+        print(answer)  # Debugging output
+        return answer
+    except Exception as e:
+        return f"Error fetching search results: {str(e)}"
 
-# Function to format answers
-def AnswerModifier(Answer):
-    lines = Answer.split('\n')
-    non_empty_lines = [line for line in lines if line.strip()]
-    modified_answer = '\n'.join(non_empty_lines)
-    return modified_answer
-
-# Initial chatbot messages
-SystemChatBot = [
-    {"role": "system", "content": System},
-    {"role": "user", "content": "Hi"},
-    {"role": "assistant", "content": "Hello, how can I help you?"}
-]
+# Answer formatting function
+def AnswerModifier(answer):
+    return "\n".join(line.strip() for line in answer.split("\n") if line.strip())
 
 # Function to get real-time information
 def Information():
-    data = ""
-    current_date_time = datetime.datetime.now()
-    day = current_date_time.strftime("%A")
-    date = current_date_time.strftime("%d")
-    month = current_date_time.strftime("%B")
-    year = current_date_time.strftime("%Y")
-    hour = current_date_time.strftime("%H")
-    minute = current_date_time.strftime("%M")
-    second = current_date_time.strftime("%S")
-
-    data += f"Use This Real-time Information if needed:\n"
-    data += f"Day: {day}\n"
-    data += f"Date: {date}\n"
-    data += f"Month: {month}\n"
-    data += f"Year: {year}\n"
-    data += f"Time: {hour} hours, {minute} minutes, {second} seconds.\n"
-
-    return data
+    now = datetime.datetime.now()
+    return (
+        f"Use This Real-time Information if needed:\n"
+        f"Day: {now.strftime('%A')}\n"
+        f"Date: {now.strftime('%d')}\n"
+        f"Month: {now.strftime('%B')}\n"
+        f"Year: {now.strftime('%Y')}\n"
+        f"Time: {now.strftime('%H')} hours, {now.strftime('%M')} minutes, {now.strftime('%S')} seconds.\n"
+    )
 
 # Function to perform real-time search and return AI-generated response
 def RealtimeSearchEngine(prompt):
-    global SystemChatBot, messages
+    global messages
 
     # Load previous chat history
-    with open(r"Data\ChatLog.json", "r") as f:
-        messages = load(f)
+    try:
+        with open(chat_log_path, "r") as f:
+            messages = load(f)
+    except (FileNotFoundError, ValueError):
+        messages = []
 
     messages.append({"role": "user", "content": prompt})
 
-    # Add Google search results and real-time information
-    search_results = GoggleSearch(prompt)
+    # Get search results and real-time info
+    search_results = GoogleSearch(prompt)
     real_time_info = Information()
 
-    SystemChatBot.append({"role": "system", "content": search_results})
+    system_chatbot = [
+        {"role": "system", "content": System},
+        {"role": "system", "content": search_results},
+        {"role": "system", "content": real_time_info},
+    ]
 
+    # API call
     completion = client.chat.completions.create(
         model="llama3-70b-8192",
-        messages=SystemChatBot + [{"role": "system", "content": real_time_info}] + messages,
+        messages=system_chatbot + messages,
         max_tokens=1024,
         temperature=0.7,
         top_p=1,
         stream=True,
-        stop=None
     )
 
-    Answer = ""
-
+    # Process response
+    answer = ""
     for chunk in completion:
-        if chunk.choices[0].delta.content:
-            Answer += chunk.choices[0].delta.content
+        if hasattr(chunk.choices[0], "delta") and chunk.choices[0].delta.content:
+            answer += chunk.choices[0].delta.content
 
-    Answer = Answer.strip().replace("</s>", "")
-    messages.append({"role": "assistant", "content": Answer})
+    answer = answer.strip().replace("</s>", "")
+    messages.append({"role": "assistant", "content": answer})
 
     # Save updated chat history
-    with open(r"Data\ChatLog.json", "w") as f:
+    with open(chat_log_path, "w") as f:
         dump(messages, f, indent=4)
 
-    return AnswerModifier(Answer)
+    return AnswerModifier(answer)
 
 # Main chatbot interaction loop
 if __name__ == "__main__":
