@@ -1,191 +1,185 @@
-from AppOpener import close, open as appopen
-from webbrowser import open as webopen
-from pywhatkit import search, playonyt
-from dotenv import load_dotenv  # Correct dotenv loading
-from bs4 import BeautifulSoup
-from rich import print
-from groq import Groq
-import webbrowser
+from Frontend.GUI import (
+    GraphicalUserInterface,
+    SetAssistantStatus,
+    ShowTextToScreen,
+    TempDirectoryPath,
+    SetMicrophoneStatus,
+    AnswerModifier,
+    QueryModifier,
+    GetMicrophoneStatus,
+    GetAssistantStatus
+)
+from Backend.Model import FirstLayerDMM
+from Backend.RealtimeSearchEngine import RealtimeSearchEngine
+from Backend.Automation import Automation
+from Backend.SpeechToText import SpeechRecognition
+from Backend.Chatbot import ChatBot
+from Backend.TextToSpeech import TextToSpeech
+from dotenv import dotenv_values
+from asyncio import run
+from time import sleep
 import subprocess
-import requests
-import keyboard
-import asyncio
+import threading
+import json
 import os
 
-# Load environment variables
-load_dotenv()
+env_vars = dotenv_values(".env")
+Username = env_vars.get("Username")
+Assistantname = env_vars.get("Assistantname")
 
-# Get API key from environment variables
-GroqAPIKey = os.getenv("GroqAPIKey")
-if not GroqAPIKey:
-    raise ValueError("\n❌ ERROR: GROQ_API_KEY is not set! Check your .env file or system variables.\n")
+DefaultMessage = f'''{Username}: Hello {Assistantname}, How are you?
+{Assistantname}: Welcome {Username}. I am doing well. How may I help you?'''
 
-# Initialize Groq client
-client = Groq(api_key=GroqAPIKey)
+subprocesses = []
+Functions = ["open", "close", "play", "system", "content", "google search", "youtube search"]
 
-classes = [
-    "zCubwf", "hgKElc", "LTKOO sY7ric", "Z0LcW", "gsrt vk_bk FzvWSb YwPhnf", "pclqee", 
-    "tw-Data-text tw-text-small tw-ta", "IZ6rdc", "O5uR6d LTKOO", "vlzY6d", "webanswers-webanswers_table_webanswers-table", 
-    "dDoNo ikb4Bb gsrt", "sXLaOe", "LWkfKe", "VQF4g", "qv3Wpe", "kno-rdesc", "SPZz6b"
-]
+def ShowDefaultChatIfNoChats():
+    with open(r'Data\ChatLog.json', "r", encoding='utf-8') as File:
+        if len(File.read()) < 5:
+            with open(TempDirectoryPath('Database.data'), 'w', encoding='utf-8') as file:
+                file.write("")
+            with open(TempDirectoryPath('Responses.data'), 'w', encoding='utf-8') as file:
+                file.write(DefaultMessage)
 
-useragent = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-             '(KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36')
+def ReadChatLogJson():
+    with open(r'Data\ChatLog.json', 'r', encoding='utf-8') as file:  
+        chatlog_data = json.load(file)
+    return chatlog_data
 
-messages = []
+def ChatLogIntegration():
+    json_data = ReadChatLogJson()
+    formatted_chatlog = ""
+    for entry in json_data:
+        if entry["role"] == "user":
+            formatted_chatlog += f"User: {entry['content']}\n"
+        elif entry["role"] == "assistant":  
+            formatted_chatlog += f"Assistant: {entry['content']}\n"
 
-SystemChatBot = [{"role": "system", "content": f"Hello, I am {os.getenv('Username', 'User')}, You're a content writer. You have to write content like letters."}]
+    formatted_chatlog = formatted_chatlog.replace("User", Username + " ")
+    formatted_chatlog = formatted_chatlog.replace("Assistant", Assistantname + " ")
 
-def GoogleSearch(Topic):
-    search(Topic)
-    return True
+    with open(TempDirectoryPath('Database.data'), 'w', encoding='utf-8') as file:
+        file.write(AnswerModifier(formatted_chatlog))
 
-def Content(Topic):
-    
-    def OpenNotepad(File):
-        default_text_editor = 'notepad.exe'
-        subprocess.Popen([default_text_editor, File])
-    
-    def ContentWriterAI(prompt):
-        messages.append({"role": "user", "content": f"{prompt}"})
+def ShowChatsOnGUI():
+    File = open(TempDirectoryPath('Database.data'), "r", encoding='utf-8')
+    Data = File.read()
+    print(f"Chat Data Being Loaded:\n{Data}")  # Debugging print
+    if len(str(Data)) > 0:
+        lines = Data.split('\n')
+        result = '\n'.join(lines)
+        File.close()
+        File = open(TempDirectoryPath('Responses.data'), "w", encoding='utf-8')
+        File.write(result)
+        File.close()
 
-        completion = client.chat.completions.create(
-            model="mixtral-8x7b-32768",
-            messages=SystemChatBot + messages,
-            max_tokens=2048,
-            temperature=0.7,
-            top_p=1,
-            stream=True,
-            stop=None
-        )
+def InitialExecution():
+    SetMicrophoneStatus("False")
+    ShowTextToScreen(" ")
+    ShowDefaultChatIfNoChats()
+    ChatLogIntegration()
+    ShowChatsOnGUI()
 
-        Answer = ""
+InitialExecution()
 
-        for chunk in completion:
-            if chunk.choices[0].delta.content:
-                Answer += chunk.choices[0].delta.content
+def MainExecution():
+    TaskExecution = False
+    ImageExecution = False
+    ImageGenerationQuery = ""
 
-        Answer = Answer.replace("</s>", "")
-        messages.append({"role": "assistant", "content": Answer})
-        return Answer
-    
-    Topic = Topic.replace("Content", "")
-    ContentByAI = ContentWriterAI(Topic)
+    SetAssistantStatus("Listening...")
+    Query = SpeechRecognition()
+    ShowTextToScreen(f"{Username}: {Query}")
+    SetAssistantStatus("Thinking...")
+    Decision = FirstLayerDMM(Query)
 
-    with open(rf"Data\{Topic.lower().replace(' ', '')}.txt", "w", encoding="utf-8") as file:
-        file.write(ContentByAI)
-    
-    OpenNotepad(rf"Data\{Topic.lower().replace(' ', '')}.txt")
-    return True
+    print("")
+    print(f"Decision {Decision}")
+    print("")
 
-def YouTubeSearch(Topic):
-    Url4Search = f"https://www.youtube.com/results?search_query={Topic}"
-    webbrowser.open(Url4Search)
-    return True
+    G = any([i for i in Decision if i.startswith("general")])
+    R = any([i for i in Decision if i.startswith("realtime")])  # Fixed '1' typo
 
-def PlayYoutube(query):
-    playonyt(query)
-    return True
+    Merged_query = " and ".join(
+        ["".join(i.split()[1:]) for i in Decision if i.startswith("general") or i.startswith("realtime")]
+    )
 
-def OpenApp(app, sess=requests.session()):
-    
-    official_links = {
-        "youtube": "https://www.youtube.com",
-        "facebook": "https://www.facebook.com/login",
-        "canva": "https://www.canva.com/login",
-        "instagram": "https://www.instagram.com",
-        "twitter": "https://twitter.com/login",
-        "linkedin": "https://www.linkedin.com/login",
-        "gmail": "https://mail.google.com",
-        "whatsapp": "https://web.whatsapp.com",
-        "github": "https://github.com/login",
-        "snapchat": "https://www.snapchat.com"
-    }
+    for queries in Decision:
+        if "generate " in queries:
+            ImageGenerationQuery = str(queries)
+            ImageExecution = True
 
-    try:
-        
-        appopen(app, match_closest=True, output=True, throw_error=True)
-        return True
-    except:
-        app = app.lower()  
+    for queries in Decision:
+        if not TaskExecution:
+            if any(queries.startswith(func) for func in Functions):
+                run(Automation(list(Decision)))
+                TaskExecution = True
 
-        if app in official_links:
-            print(f"Opening {app} official login page...")
-            webopen(official_links[app])  
-        else:
-           
-            print(f"Searching for the official website of {app}...")
-            search_query = f"official site of {app}"
-            google_search_url = f"https://www.google.com/search?q={search_query}"
-            webopen(google_search_url)
-        
-        return True
+    if ImageExecution:
+        with open(r"Frontend\Files\ImageGeneration.data", "w") as file:
+            file.write(f"{ImageGenerationQuery}, True")
 
-def CloseApp(app):
-    if "chrome" in app:
-        pass
-    else:
         try:
-            close(app, match_closest=True, output=True, throw_error=True)
-            return True
-        except:
-            return False
+            p1 = subprocess.Popen(['python', r'Backend\ImageGeneration.py'],
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                  stdin=subprocess.PIPE, shell=False)
+            subprocesses.append(p1)
+        except Exception as e:
+            print(f"Error starting ImageGeneration.py: {e}")
 
-def System(command):
-    def mute():
-        keyboard.press_and_release("volume mute")
-    
-    def unmute():
-        keyboard.press_and_release("volume mute")
-    
-    def volume_up():
-        keyboard.press_and_release("volume up")
-    
-    def volume_down():
-        keyboard.press_and_release("volume down")
-    
-    if command == "mute":
-        mute()
-    elif command == "unmute":
-        unmute()
-    elif command == "volume up":
-        volume_up()
-    elif command == "volume down":
-        volume_down()
-    
-    return True
+    if G and R or R:
+        SetAssistantStatus("Searching...")
+        Answer = RealtimeSearchEngine(QueryModifier(Merged_query))
+        ShowTextToScreen(f"{Assistantname}: {Answer}")
+        SetAssistantStatus("Answering...")
+        TextToSpeech(Answer)
+        return True
 
-async def TranslateAndExecute(commands: list[str]):
-    funcs = []
+    else:
+        for Queries in Decision:
+            if "general" in Queries:
+                SetAssistantStatus("Thinking...")
+                QueryFinal = Queries.replace("general", "")
+                Answer = ChatBot(QueryModifier(QueryFinal))
+                ShowTextToScreen(f"{Assistantname}: {Answer}")
+                SetAssistantStatus("Answering...")
+                TextToSpeech(Answer)
+                return True
 
-    for command in commands:
-        if command.startswith("open "):
-            fun = asyncio.to_thread(OpenApp, command.removeprefix("open "))
-            funcs.append(fun)
-        elif command.startswith("close "):
-            fun = asyncio.to_thread(CloseApp, command.removeprefix("close "))
-            funcs.append(fun)
-        elif command.startswith("play "):
-            fun = asyncio.to_thread(PlayYoutube, command.removeprefix("play "))
-            funcs.append(fun)
-        elif command.startswith("content "):
-            fun = asyncio.to_thread(Content, command.removeprefix("content "))
-            funcs.append(fun)
-        elif command.startswith("google search "):
-            fun = asyncio.to_thread(GoogleSearch, command.removeprefix("google search "))
-            funcs.append(fun)
-        elif command.startswith("youtube search "):
-            fun = asyncio.to_thread(YouTubeSearch, command.removeprefix("youtube search "))
-            funcs.append(fun)
-        elif command.startswith("system "):
-            fun = asyncio.to_thread(System, command.removeprefix("system "))
-            funcs.append(fun)
+            elif "realtime" in Queries:
+                SetAssistantStatus("Searching...")
+                QueryFinal = Queries.replace("realtime ", "")
+                Answer = RealtimeSearchEngine(QueryModifier(QueryFinal))
+                ShowTextToScreen(f"{Assistantname}: {Answer}")  
+                SetAssistantStatus("Answering...")
+                TextToSpeech(Answer)
+                return True
+
+            elif "exit" in Queries:
+                QueryFinal = "Okay, Bye!"
+                Answer = ChatBot(QueryModifier(QueryFinal))
+                ShowTextToScreen(f"{Assistantname}: {Answer}")
+                SetAssistantStatus("Answering...")
+                TextToSpeech(Answer)
+                os._exit(1)
+
+def FirstThread():
+    while True:
+        CurrentStatus = GetMicrophoneStatus()
+
+        if CurrentStatus == "True":
+            MainExecution()
         else:
-            print(f"No Function Found for {command}")
-    
-    results = await asyncio.gather(*funcs)
-    return results
+            AIStatus = GetAssistantStatus()
+            if "Available..." in AIStatus:
+                sleep(0.1)
+            else:
+                SetAssistantStatus("Available...")
 
-async def Automation(commands: list[str]):
-    await TranslateAndExecute(commands)
-    return True
+def SecondThread():
+    GraphicalUserInterface()
+
+if __name__ == "__main__":
+    thread2 = threading.Thread(target=FirstThread, daemon=True)
+    thread2.start()
+    SecondThread()
