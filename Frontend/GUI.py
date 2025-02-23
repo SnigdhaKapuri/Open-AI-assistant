@@ -156,19 +156,23 @@ class ChatSection(QWidget):
     def loadMessages(self):
         global old_chat_message
 
-        with open(TempDirectoryPath('Responses.data'), "r", encoding='utf-8') as file:
-            messages = file.read()
+        try:
+            with open(TempDirectoryPath('Responses.data'), "r", encoding='utf-8') as file:
+                messages = file.read().strip()  
 
-            if None == messages:
-                pass
-            elif len(messages) <= 1:
-                pass
-            elif str(old_chat_message) == str(messages):
-                pass
-            else:
-                self.addMessage(message=messages, color='White')
-                old_chat_message = messages
+            if not messages: 
+                return
+        
+            if messages != old_chat_message:  
+                self.chat_text_edit.append(messages)  
+                old_chat_message = messages  
+        
+        
+            self.chat_text_edit.ensureCursorVisible()  
 
+        except Exception as e:
+            print(f"Error loading chat messages: {e}")
+        
     def SpeechRecogText(self):
         with open(TempDirectoryPath('Status.data'), "r", encoding='utf-8') as file:
             messages = file.read()
