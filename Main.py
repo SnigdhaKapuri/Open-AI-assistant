@@ -22,6 +22,7 @@ import subprocess
 import threading
 import json
 import os
+from Backend.ImageGeneration import GenerateImages
 
 env_vars = dotenv_values(".env")
 Username = env_vars.get("Username")
@@ -97,8 +98,8 @@ def MainExecution():
     print(f"Decision {Decision}")
     print("")
 
-    G = any([i for i in Decision if i.startswith("general")])
-    R = any([i for i in Decision if i.startswith("realtime")])  # Fixed '1' typo
+    G = any(i.startswith("general") for i in Decision)
+    R = any(i.startswith("realtime") for i in Decision)
 
     Merged_query = " and ".join(
         ["".join(i.split()[1:]) for i in Decision if i.startswith("general") or i.startswith("realtime")]
@@ -116,16 +117,7 @@ def MainExecution():
                 TaskExecution = True
 
     if ImageExecution:
-        with open(r"Frontend\Files\ImageGeneration.data", "w") as file:
-            file.write(f"{ImageGenerationQuery}, True")
-
-        try:
-            p1 = subprocess.Popen(['python', r'Backend\ImageGeneration.py'],
-                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                  stdin=subprocess.PIPE, shell=False)
-            subprocesses.append(p1)
-        except Exception as e:
-            print(f"Error starting ImageGeneration.py: {e}")
+        GenerateImages(ImageGenerationQuery)  # Direct function call
 
     if G and R or R:
         SetAssistantStatus("Searching...")

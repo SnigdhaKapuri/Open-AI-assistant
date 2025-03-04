@@ -4,13 +4,76 @@ from PyQt5.QtCore import Qt, QSize, QTimer
 from dotenv import dotenv_values
 import sys
 import os
+import re
+# from PyQt5.QtWidgets import (
+#     QApplication, QDialog, QLineEdit, QVBoxLayout, QPushButton, QMessageBox
+# )
 
+from PyQt5.QtWidgets import (
+    QApplication, QDialog, QVBoxLayout, QLineEdit, QPushButton, QLabel, QMessageBox, QHBoxLayout
+)
+from PyQt5.QtGui import QIcon, QPixmap, QFont
+import sys
+import os
+import json
+
+# Path to the JSON file storing credentials
+current_dir = os.getcwd()
+CREDENTIALS_FILE = rf"{current_dir}\Frontend\Files\credentials.json"
+
+env_vars = dotenv_values(".env")
+Username = env_vars.get("Username")
+Assistantname = env_vars.get("Assistantname")
 env_vars = dotenv_values(".env")
 Assistantname = env_vars.get("Assistantname")
 current_dir = os.getcwd()
 old_chat_message = ""
 TempDirPath = rf"{current_dir}\Frontend\Files"
 GraphicsDirPath = rf"{current_dir}\Frontend\Graphics"
+
+class LoginScreen(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Login")
+        self.setFixedSize(300, 150)
+        self.setStyleSheet("background-color: #121212; color: white;")
+
+        layout = QVBoxLayout()
+
+        self.username_input = QLineEdit()
+        self.username_input.setPlaceholderText("Username")
+        self.username_input.setStyleSheet("background-color: #1e1e1e; color: white; border-radius: 5px; padding: 5px;")
+        layout.addWidget(self.username_input)
+
+        self.password_input = QLineEdit()
+        self.password_input.setPlaceholderText("Password")
+        self.password_input.setEchoMode(QLineEdit.Password)
+        self.password_input.setStyleSheet("background-color: #1e1e1e; color: white; border-radius: 5px; padding: 5px;")
+        layout.addWidget(self.password_input)
+
+        self.login_button = QPushButton("Login")
+        self.login_button.setStyleSheet("background-color: #1e1e1e; color: white; border-radius: 5px; padding: 5px;")
+        self.login_button.clicked.connect(self.check_credentials)
+        layout.addWidget(self.login_button)
+
+        self.setLayout(layout)
+
+    def check_credentials(self):
+        username = self.username_input.text()
+        password = self.password_input.text()
+
+        # Load credentials from JSON file
+        if os.path.exists(CREDENTIALS_FILE):
+            with open(CREDENTIALS_FILE, "r") as file:
+                credentials = json.load(file)
+        else:
+            credentials = {}
+
+        if username in credentials and credentials[username] == password:
+            QMessageBox.information(self, "Success", "Login successful!")
+            self.accept()  # Close the dialog and return QDialog.Accepted
+        else:
+            QMessageBox.warning(self, "Error", "Invalid username or password")
 
 def AnswerModifier(Answer):
     lines = Answer.split('\n')
@@ -76,21 +139,23 @@ class ChatSection(QWidget):
     def __init__(self):
         super(ChatSection, self).__init__()
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(-10, 40, 40, 100)
-        layout.setSpacing(-100)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
         self.chat_text_edit = QTextEdit()
         self.chat_text_edit.setReadOnly(True)
         self.chat_text_edit.setTextInteractionFlags(Qt.NoTextInteraction)
         self.chat_text_edit.setFrameStyle(QFrame.NoFrame)
+        self.chat_text_edit.setStyleSheet("""
+            QTextEdit {
+                background-color: #1e1e1e;
+                color: #ffffff;
+                border-radius: 10px;
+                padding: 10px;
+                font-size: 14px;
+            }
+        """)
         layout.addWidget(self.chat_text_edit)
-        self.setStyleSheet("background-color: black;")
-        layout.setSizeConstraint(QVBoxLayout.SetDefaultConstraint)
-        layout.setStretch(1, 1)
-        self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding))
-        text_color = QColor(Qt.white)
-        text_color_text = QTextCharFormat()
-        text_color_text.setForeground(text_color)
-        self.chat_text_edit.setCurrentCharFormat(text_color_text)
+        self.setStyleSheet("background-color: #121212;")
         self.gif_label = QLabel()
         self.gif_label.setStyleSheet("border: none;")
         movie = QMovie(GraphicsDirectoryPath('Jarvis.gif'))
@@ -105,105 +170,114 @@ class ChatSection(QWidget):
         self.label.setStyleSheet("color: white; font-size:16px; margin-right: 195px; border: none; margin-top: -30px;")
         self.label.setAlignment(Qt.AlignRight)
         layout.addWidget(self.label)
-        layout.setSpacing(-10)
-        layout.addWidget(self.gif_label)
-        font = QFont()
-        font.setPointSize(13)
-        self.chat_text_edit.setFont(font)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.loadMessages)
         self.timer.timeout.connect(self.SpeechRecogText)
         self.timer.start(5)
-        self.chat_text_edit.viewport().installEventFilter(self)
-        self.setStyleSheet(""" 
-            QScrollBar:vertical {
-                border: none;
-                background: black;
-                width:10px;
-                margin : 0px 0px 0px 0px;
-            }
 
-            QScrollBar::handle:vertical {
-                background: white;
-                min-height: 20px;
-            }
+    # def loadMessages(self):
+    #     global old_chat_message
 
-            QScrollBar::add-line:vertical {
-                background: black;
-                subcontrol-position: bottom;
-                subcontrol-origin: margin;
-                height: 10px;
-            }
+    #     with open(TempDirectoryPath('Responses.data'), "r", encoding='utf-8') as file:
+    #         messages = file.read()
 
-            QScrollBar::sub-line:vertical {
-                background: black;
-                subcontrol-position: top;
-                subcontrol-origin: margin;
-                height: 10px;
-            }
+    #     if messages is None or len(messages.strip()) <= 1 or str(old_chat_message) == str(messages):
+    #         return
 
-            QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
-                border:none;
-                background: none;
-                color: none;
-            }
+    #     for line in messages.splitlines():
+    #         line = line.strip()
+    #         if line:
+    #             print("Processing line:", line)
+    #             self.addMessage(message=line)
+    #     old_chat_message = messages
 
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                background: none;
-            }
-        """)
 
     def loadMessages(self):
         global old_chat_message
 
-        try:
-            with open(TempDirectoryPath('Responses.data'), "r", encoding='utf-8') as file:
-                messages = file.read().strip()  
+        with open(TempDirectoryPath('Responses.data'), "r", encoding='utf-8') as file:
+            text = file.read()
 
-            if not messages: 
-                return
-        
-            if messages != old_chat_message:  
-                self.chat_text_edit.append(messages)  
-                old_chat_message = messages  
-        
-        
-            self.chat_text_edit.ensureCursorVisible()  
+        # Return early if nothing meaningful has been loaded.
+        if text is None or len(text.strip()) <= 1 or str(old_chat_message) == str(text):
+            return
 
-        except Exception as e:
-            print(f"Error loading chat messages: {e}")
-        
+        # Define the senders using your environment variables
+        # username = env_vars.get("Username")
+        # assistantname = env_vars.get("Assistantname")
+        senders = [Username, Assistantname]
+
+        # Build a regex pattern to match lines starting with any sender followed by a colon.
+        # re.escape ensures special characters in sender names are handled properly.
+        pattern = re.compile(
+            r'^\s*({0})\s*:'.format("|".join([re.escape(sender) for sender in senders])),
+            re.MULTILINE
+        )
+
+        # Find all occurrences that mark the beginning of a message.
+        matches = list(pattern.finditer(text))
+        messages = []
+
+        # Iterate over each match, using its start index to slice out individual messages.
+        for i, match in enumerate(matches):
+            start = match.start()
+            # If not the last match, end the message at the start of the next sender's line.
+            end = matches[i+1].start() if i+1 < len(matches) else len(text)
+            msg = text[start:end].strip()
+            messages.append(msg)
+
+        # Now send each individual message to addMessage
+        for msg in messages:
+            print("msg")
+            print(msg)
+            self.addMessage(message=msg)
+
+        old_chat_message = text
+
     def SpeechRecogText(self):
         with open(TempDirectoryPath('Status.data'), "r", encoding='utf-8') as file:
             messages = file.read()
             self.label.setText(messages)
 
-    def load_icon(self, path, width=60, height=60):
-        pixmap = QPixmap(path)
-        new_pixmap = pixmap.scaled(width, height)
-        self.icon_label.setPixmap(new_pixmap)
 
-    def toggle_icon(self, event=None):
-        if self.toggled:
-            self.load_icon(GraphicsDirectoryPath('voice.png'), 60, 60)
-            MicButtonInitialed()
+
+    def addMessage(self, message):
+    # Strip leading/trailing whitespace to avoid mismatches
+        message = message.strip()
+        
+        # Decide color and alignment based on the sender prefix
+        if message.startswith(f"{Username}:"):
+            color = "blue"      # Color for the user
+            alignment = Qt.AlignmentFlag.AlignLeft  # Align left for user messages
+        elif message.startswith(f"{Assistantname}:"):
+            color = "green"     # Color for the assistant
+            alignment = Qt.AlignmentFlag.AlignRight  # Align right for assistant messages
         else:
-            self.load_icon(GraphicsDirectoryPath('mic.png'), 60, 60)
-            MicButtonClosed()
+            color = "white"     # Default color if sender unknown
+            alignment = Qt.AlignmentFlag.AlignLeft  # Default alignment
 
-        self.toggled = not self.toggled
+        print("Message in addMessage:", message)
 
-    def addMessage(self, message, color):
         cursor = self.chat_text_edit.textCursor()
-        format = QTextCharFormat()
-        formatm = QTextBlockFormat()
-        formatm.setTopMargin(10)
-        formatm.setLeftMargin(10)
-        formatm.setForeground(QColor(color))
-        cursor.setCharFormat(format)
-        cursor.setBlockFormat(formatm)
+
+        # Create formats for text and block
+        charFormat = QTextCharFormat()
+        blockFormat = QTextBlockFormat()
+        
+        # Increase text size (set to 14 points as an example)
+        charFormat.setFontPointSize(14)
+        blockFormat.setTopMargin(10)
+        blockFormat.setLeftMargin(10)
+        blockFormat.setAlignment(alignment)
+        
+        charFormat.setForeground(QColor(color))
+
+        cursor.setBlockFormat(blockFormat)
+        cursor.setCharFormat(charFormat)
         cursor.insertText(message + "\n")
+
         self.chat_text_edit.setTextCursor(cursor)
+
 
 class InitialScreen(QWidget):
     def __init__(self, parent=None):
@@ -239,7 +313,7 @@ class InitialScreen(QWidget):
         self.setLayout(content_layout)
         self.setFixedHeight(screen_height)
         self.setFixedWidth(screen_width)
-        self.setStyleSheet("background-color: black;")
+        self.setStyleSheet("background-color: #121212;")
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.SpeechRecogText)
         self.timer.start(5)
@@ -276,7 +350,7 @@ class MessageScreen(QWidget):
         chat_section = ChatSection()
         layout.addWidget(chat_section)
         self.setLayout(layout)
-        self.setStyleSheet("background-color: black;")
+        self.setStyleSheet("background-color: #121212;")
         self.setFixedHeight(screen_height)
         self.setFixedWidth(screen_width)
 
@@ -403,16 +477,31 @@ class MainWindow(QMainWindow):
         stacked_widget.addWidget(initial_screen)
         stacked_widget.addWidget(message_screen)
         self.setGeometry(0, 0, screen_width, screen_height)
-        self.setStyleSheet("background-color: black;")
+        self.setStyleSheet("background-color: #121212;")
         top_bar = CustomTopBar(self, stacked_widget)
         self.setMenuWidget(top_bar)
         self.setCentralWidget(stacked_widget)
 
+# def GraphicalUserInterface():
+#     app = QApplication(sys.argv)
+#     window = MainWindow()
+#     window.show()
+#     sys.exit(app.exec_())
+
+# if __name__ == "__main__":
+#     GraphicalUserInterface()
+
+
 def GraphicalUserInterface():
     app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
+    
+    # Show the login screen first
+    login_screen = LoginScreen()
+    if login_screen.exec_() == QDialog.Accepted:
+        # If login is successful, proceed to main GUI
+        window = MainWindow()
+        window.show()
+        sys.exit(app.exec_())
 
 if __name__ == "__main__":
     GraphicalUserInterface()
