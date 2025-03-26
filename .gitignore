@@ -1,0 +1,24 @@
+# Ignore virtual environment
+.venv/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore generated images
+Data/generate_image_*.jpg
+
+# Ignore generated speech files
+Data/speech_*.mp3
+
+# Ignore specific sensitive files
+# .env
+# Data/ChatLog.json
+# Frontend/Files/Database.data
+# Frontend/Files/Mic.data
+# Frontend/Files/Responses.data
+# Frontend/Files/Status.data
+# Data/lettertocentreat.txt
+
+# Ignore other temporary files
+*.log
