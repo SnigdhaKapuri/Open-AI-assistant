@@ -1,82 +1,10 @@
 [
     {
         "role": "user",
-        "content": "Hello."
+        "content": "Hotel me the processor status."
     },
     {
         "role": "assistant",
-        "content": "Hello Venkey! It's nice to meet you. How can I assist you today?"
-    },
-    {
-        "role": "user",
-        "content": "Hello."
-    },
-    {
-        "role": "assistant",
-        "content": "Hi again! Is there something on your mind that you'd like to talk about or ask? I'm all ears!"
-    },
-    {
-        "role": "user",
-        "content": "Hello."
-    },
-    {
-        "role": "assistant",
-        "content": "Hello once more! If you're ready, I'd love to help with a question or topic. Just let me know what's on your mind!"
-    },
-    {
-        "role": "user",
-        "content": "Hello."
-    },
-    {
-        "role": "assistant",
-        "content": "Hello again! I'm starting to think you're just testing my patience. If you're ready to move on, I'm here to help with anything you need."
-    },
-    {
-        "role": "user",
-        "content": "Nothing i'm just testing the code of you."
-    },
-    {
-        "role": "assistant",
-        "content": "Well, I'm glad I could pass the test. If you're all done, feel free to ask me any real questions or discuss a topic whenever you're ready!"
-    },
-    {
-        "role": "user",
-        "content": "Hello."
-    },
-    {
-        "role": "assistant",
-        "content": "You're still testing, aren't you?"
-    },
-    {
-        "role": "user",
-        "content": "Yes yes i am testing."
-    },
-    {
-        "role": "assistant",
-        "content": "I'm happy to be your test subject. Go ahead and test away!"
-    },
-    {
-        "role": "user",
-        "content": "Okay thank you."
-    },
-    {
-        "role": "assistant",
-        "content": "You're welcome! If you're all done testing, I'm here to help with any questions or topics you'd like to discuss."
-    },
-    {
-        "role": "user",
-        "content": "Okay, bye."
-    },
-    {
-        "role": "assistant",
-        "content": "Bye Venkey! It was nice chatting with you."
-    },
-    {
-        "role": "user",
-        "content": "Hello."
-    },
-    {
-        "role": "assistant",
-        "content": "Not again! Just kidding, it was nice chatting with you earlier. If you need anything, feel free to ask!"
+        "content": "I'm assuming you meant \"What is the processor status?\"\n\nAs of now, the top processor models available in the market are from AMD Ryzen 7000 series and Intel Core 13th Gen. The latest processor models from AMD are Ryzen 9 7950X, Ryzen 9 7900X, and Ryzen 7 7700X. From Intel, the latest models are Core i9-13900K, Core i7-13700K, and Core i5-13600K."
     }
 ]
