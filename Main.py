@@ -98,7 +98,9 @@ def get_system_status():
     
     System Uptime: Since {uptime_str}
     """
-    
+    print("system status")
+    print(system_status.strip())
+
     return system_status.strip()
 
 def ShowDefaultChatIfNoChats():
@@ -183,7 +185,7 @@ def MainExecution():
                     system_status = get_system_status()
                     ShowTextToScreen(f"{Assistantname}: Here's the system status:\n{system_status}")
                     SetAssistantStatus("Answering...")
-                    TextToSpeech(f"Here's the system status: CPU usage is {psutil.cpu_percent()} percent.")
+                    TextToSpeech(f"Here's we go {system_status} .")
                     SetMicrophoneStatus("False")  # Reset mic status after completion
                     return True
                 else:

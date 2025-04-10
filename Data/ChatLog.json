@@ -70,5 +70,13 @@
     {
         "role": "assistant",
         "content": "Bye Venkey! It was nice chatting with you."
+    },
+    {
+        "role": "user",
+        "content": "Hello."
+    },
+    {
+        "role": "assistant",
+        "content": "Not again! Just kidding, it was nice chatting with you earlier. If you need anything, feel free to ask!"
     }
 ]
