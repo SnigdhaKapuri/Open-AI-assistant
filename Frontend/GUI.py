@@ -119,9 +119,15 @@ def GetAssistantStatus():
 
 def MicButtonInitialed():
     SetMicrophoneStatus("True")
+    SetAssistantStatus("Listening...")
+
+
 
 def MicButtonClosed():
     SetMicrophoneStatus("False")
+    SetAssistantStatus("Not Listening...")
+
+
 
 def GraphicsDirectoryPath(Filename):
     Path = rf'{GraphicsDirPath}\{Filename}'
@@ -134,13 +140,14 @@ def TempDirectoryPath(Filename):
 def ShowTextToScreen(Text):
     with open(rf'{TempDirPath}\Responses.data', "w", encoding='utf-8') as file:
         file.write(Text)
-
 class ChatSection(QWidget):
     def __init__(self):
         super(ChatSection, self).__init__()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(10)
+
+        # Chat display area
         self.chat_text_edit = QTextEdit()
         self.chat_text_edit.setReadOnly(True)
         self.chat_text_edit.setTextInteractionFlags(Qt.NoTextInteraction)
@@ -155,6 +162,38 @@ class ChatSection(QWidget):
             }
         """)
         layout.addWidget(self.chat_text_edit)
+
+               # Horizontal layout for buttons
+        button_layout = QHBoxLayout()
+        button_layout.setAlignment(Qt.AlignRight)
+
+        # Clear Chat button with attractive styling
+        self.clear_button = QPushButton("Clear Chat")
+        self.clear_button.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
+                                            stop:0 #ff4d4d, stop:1 #ff1a1a);
+                color: white;
+                border-radius: 8px;
+                padding: 8px 15px;
+                font-size: 14px;
+                font-weight: bold;
+                border: 2px solid #cc0000;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
+                                            stop:0 #ff6666, stop:1 #ff3333);
+                border: 2px solid #ff3333;
+            }
+            QPushButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
+                                            stop:0 #cc0000, stop:1 #990000);
+            }
+        """)
+        self.clear_button.clicked.connect(self.clear_chat)
+        button_layout.addWidget(self.clear_button)
+
+        layout.addLayout(button_layout)
         self.setStyleSheet("background-color: #121212;")
         self.gif_label = QLabel()
         self.gif_label.setStyleSheet("border: none;")
@@ -166,72 +205,39 @@ class ChatSection(QWidget):
         self.gif_label.setMovie(movie)
         movie.start()
         layout.addWidget(self.gif_label)
+
         self.label = QLabel("")
         self.label.setStyleSheet("color: white; font-size:16px; margin-right: 195px; border: none; margin-top: -30px;")
         self.label.setAlignment(Qt.AlignRight)
         layout.addWidget(self.label)
+
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.loadMessages)
         self.timer.timeout.connect(self.SpeechRecogText)
         self.timer.start(5)
 
-    # def loadMessages(self):
-    #     global old_chat_message
-
-    #     with open(TempDirectoryPath('Responses.data'), "r", encoding='utf-8') as file:
-    #         messages = file.read()
-
-    #     if messages is None or len(messages.strip()) <= 1 or str(old_chat_message) == str(messages):
-    #         return
-
-    #     for line in messages.splitlines():
-    #         line = line.strip()
-    #         if line:
-    #             print("Processing line:", line)
-    #             self.addMessage(message=line)
-    #     old_chat_message = messages
-
-
     def loadMessages(self):
         global old_chat_message
-
         with open(TempDirectoryPath('Responses.data'), "r", encoding='utf-8') as file:
             text = file.read()
-
-        # Return early if nothing meaningful has been loaded.
         if text is None or len(text.strip()) <= 1 or str(old_chat_message) == str(text):
             return
-
-        # Define the senders using your environment variables
-        # username = env_vars.get("Username")
-        # assistantname = env_vars.get("Assistantname")
         senders = [Username, Assistantname]
-
-        # Build a regex pattern to match lines starting with any sender followed by a colon.
-        # re.escape ensures special characters in sender names are handled properly.
         pattern = re.compile(
             r'^\s*({0})\s*:'.format("|".join([re.escape(sender) for sender in senders])),
             re.MULTILINE
         )
-
-        # Find all occurrences that mark the beginning of a message.
         matches = list(pattern.finditer(text))
         messages = []
-
-        # Iterate over each match, using its start index to slice out individual messages.
         for i, match in enumerate(matches):
             start = match.start()
-            # If not the last match, end the message at the start of the next sender's line.
             end = matches[i+1].start() if i+1 < len(matches) else len(text)
             msg = text[start:end].strip()
             messages.append(msg)
-
-        # Now send each individual message to addMessage
         for msg in messages:
             print("msg")
             print(msg)
             self.addMessage(message=msg)
-
         old_chat_message = text
 
     def SpeechRecogText(self):
@@ -239,46 +245,42 @@ class ChatSection(QWidget):
             messages = file.read()
             self.label.setText(messages)
 
-
-
     def addMessage(self, message):
-    # Strip leading/trailing whitespace to avoid mismatches
         message = message.strip()
-        
-        # Decide color and alignment based on the sender prefix
         if message.startswith(f"{Username}:"):
-            color = "blue"      # Color for the user
-            alignment = Qt.AlignmentFlag.AlignLeft  # Align left for user messages
+            color = "blue"
+            alignment = Qt.AlignmentFlag.AlignLeft
         elif message.startswith(f"{Assistantname}:"):
-            color = "green"     # Color for the assistant
-            alignment = Qt.AlignmentFlag.AlignRight  # Align right for assistant messages
+            color = "green"
+            alignment = Qt.AlignmentFlag.AlignRight
         else:
-            color = "white"     # Default color if sender unknown
-            alignment = Qt.AlignmentFlag.AlignLeft  # Default alignment
-
+            color = "white"
+            alignment = Qt.AlignmentFlag.AlignLeft
         print("Message in addMessage:", message)
-
         cursor = self.chat_text_edit.textCursor()
-
-        # Create formats for text and block
         charFormat = QTextCharFormat()
         blockFormat = QTextBlockFormat()
-        
-        # Increase text size (set to 14 points as an example)
         charFormat.setFontPointSize(14)
         blockFormat.setTopMargin(10)
         blockFormat.setLeftMargin(10)
         blockFormat.setAlignment(alignment)
-        
         charFormat.setForeground(QColor(color))
-
         cursor.setBlockFormat(blockFormat)
         cursor.setCharFormat(charFormat)
         cursor.insertText(message + "\n")
-
         self.chat_text_edit.setTextCursor(cursor)
 
-
+    def clear_chat(self):
+        """Clear all chat messages from the QTextEdit and the Responses.data file."""
+        self.chat_text_edit.clear()
+        global old_chat_message
+        old_chat_message = ""
+        with open(TempDirectoryPath('Responses.data'), "w", encoding='utf-8') as file:
+            file.write("")
+        with open(TempDirectoryPath('Database.data'), "w", encoding='utf-8') as file:
+            file.write("")
+        with open(r'Data\ChatLog.json', "w", encoding='utf-8') as file:
+            json.dump([], file)  # Reset
 class InitialScreen(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)

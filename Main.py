@@ -150,6 +150,7 @@ def InitialExecution():
 
 InitialExecution()
 
+# Modified MainExecution to ensure it works with continuous monitoring
 def MainExecution():
     TaskExecution = False
     ImageExecution = False
@@ -161,9 +162,7 @@ def MainExecution():
     SetAssistantStatus("Thinking...")
     Decision = FirstLayerDMM(Query)
 
-    print("")
     print(f"Decision {Decision}")
-    print("")
 
     G = any(i.startswith("general") for i in Decision)
     R = any(i.startswith("realtime") for i in Decision)
@@ -181,11 +180,11 @@ def MainExecution():
         if not TaskExecution:
             if any(queries.startswith(func) for func in Functions):
                 if "system" in queries.lower():
-                    # Handle system status request
                     system_status = get_system_status()
                     ShowTextToScreen(f"{Assistantname}: Here's the system status:\n{system_status}")
                     SetAssistantStatus("Answering...")
-                    TextToSpeech(f"Here's the system status: CPU usage is {psutil.cpu_percent()} percent. Memory usage is {psutil.virtual_memory().percent} percent.")
+                    TextToSpeech(f"Here's the system status: CPU usage is {psutil.cpu_percent()} percent.")
+                    SetMicrophoneStatus("False")  # Reset mic status after completion
                     return True
                 else:
                     run(Automation(list(Decision)))
@@ -200,6 +199,7 @@ def MainExecution():
         ShowTextToScreen(f"{Assistantname}: {Answer}")
         SetAssistantStatus("Answering...")
         TextToSpeech(Answer)
+        SetMicrophoneStatus("False")  # Reset mic status after completion
         return True
     else:
         for Queries in Decision:
@@ -210,6 +210,7 @@ def MainExecution():
                 ShowTextToScreen(f"{Assistantname}: {Answer}")
                 SetAssistantStatus("Answering...")
                 TextToSpeech(Answer)
+                SetMicrophoneStatus("False")  # Reset mic status after completion
                 return True
             elif "realtime" in Queries:
                 SetAssistantStatus("Searching...")
@@ -218,6 +219,7 @@ def MainExecution():
                 ShowTextToScreen(f"{Assistantname}: {Answer}")  
                 SetAssistantStatus("Answering...")
                 TextToSpeech(Answer)
+                SetMicrophoneStatus("False")  # Reset mic status after completion
                 return True
             elif "exit" in Queries:
                 QueryFinal = "Okay, Bye!"
@@ -227,17 +229,41 @@ def MainExecution():
                 TextToSpeech(Answer)
                 os._exit(1)
 
+                
 def FirstThread():
+    import time
+    last_input_time = time.time()  # Initialize last input time
+    timeout_seconds = 10  # 10-second timeout as requested
+
     while True:
         CurrentStatus = GetMicrophoneStatus()
+        print(f"Microphone Status: {CurrentStatus}, Last Input Time: {last_input_time}")  # Debugging
+        
         if CurrentStatus == "True":
-            MainExecution()
+            print("User input detected, running MainExecution...")
+            MainExecution()  # Process user input
+            last_input_time = time.time()  # Reset timer AFTER successful execution
+            print(f"Timer reset to: {last_input_time}")
         else:
+            current_time = time.time()
+            elapsed_time = current_time - last_input_time
+            print(f"Elapsed time since last input: {elapsed_time:.2f} seconds")
+            
+            if elapsed_time >= timeout_seconds:
+                print("No user input for 10 seconds. Exiting program...")
+                SetAssistantStatus("Exiting due to inactivity...")
+                ShowTextToScreen(f"{Assistantname}: Goodbye, exiting due to 10 seconds of inactivity.")
+                TextToSpeech("Goodbye, exiting due to 10 seconds of inactivity.")
+                sleep(1)  # Allow time for GUI and audio to update
+                os._exit(1)  # Exit the program
+            
+            # Update status when not processing
             AIStatus = GetAssistantStatus()
-            if "Available..." in AIStatus:
-                sleep(0.1)
-            else:
+            if "Available..." not in AIStatus:
                 SetAssistantStatus("Available...")
+        
+        sleep(0.1)  # Small delay to preven
+
 
 def SecondThread():
     GraphicalUserInterface()
