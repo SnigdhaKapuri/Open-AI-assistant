@@ -233,7 +233,7 @@ def MainExecution():
 def FirstThread():
     import time
     last_input_time = time.time()  # Initialize last input time
-    timeout_seconds = 10  # 10-second timeout as requested
+    timeout_seconds = 60  # 10-second timeout as requested
 
     while True:
         CurrentStatus = GetMicrophoneStatus()

@@ -102,6 +102,10 @@ def QueryModifier(Query):
 def SetMicrophoneStatus(Command):
     with open(rf'{TempDirPath}\Mic.data', "w", encoding='utf-8') as file:
         file.write(Command)
+    # Sync Status.data with appropriate message
+    status_message = "Listening..." if Command == "True" else "Not Listening..."
+    with open(rf'{TempDirPath}\Status.data', "w", encoding='utf-8') as file:
+        file.write(status_message)
 
 def GetMicrophoneStatus():
     with open(rf'{TempDirPath}\Mic.data', "r", encoding='utf-8') as file:
@@ -281,6 +285,7 @@ class ChatSection(QWidget):
             file.write("")
         with open(r'Data\ChatLog.json', "w", encoding='utf-8') as file:
             json.dump([], file)  # Reset
+            
 class InitialScreen(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -297,14 +302,23 @@ class InitialScreen(QWidget):
         gif_label.setAlignment(Qt.AlignCenter)
         movie.start()
         gif_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        
+# Microphone icon setup
         self.icon_label = QLabel()
         pixmap = QPixmap(GraphicsDirectoryPath('Mic_on.png'))
         new_pixmap = pixmap.scaled(60, 60)
         self.icon_label.setPixmap(new_pixmap)
         self.icon_label.setFixedSize(150, 150)
         self.icon_label.setAlignment(Qt.AlignCenter)
+        
+        # Enable mouse events for the label
+        self.icon_label.setAttribute(Qt.WA_MouseTracking, True)
+        self.icon_label.setMouseTracking(True)
+        self.icon_label.mousePressEvent = self.toggle_icon  # Assign the handler
+        
         self.toggled = True
-        self.toggle_icon()
+        self.toggle_icon()  # Initial call to set the state
+        
         self.icon_label.mousePressEvent = self.toggle_icon
         self.label = QLabel("")
         self.label.setStyleSheet("color: white; font-size:16px; margin-bottom:0;")
@@ -320,25 +334,35 @@ class InitialScreen(QWidget):
         self.timer.timeout.connect(self.SpeechRecogText)
         self.timer.start(5)
 
-    def SpeechRecogText(self):
-        with open(TempDirectoryPath('Status.data'), "r", encoding='utf-8') as file:
-            messages = file.read()
-            self.label.setText(messages)
+    def toggle_icon(self, event=None):
+        if self.toggled:
+            self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 60, 60)
+            MicButtonClosed()  # Updates Mic.data and Status.data
+        else:
+            self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 60, 60)
+            MicButtonInitialed()  # Updates Mic.data and Status.data
+        self.toggled = not self.toggled
 
     def load_icon(self, path, width=60, height=60):
         pixmap = QPixmap(path)
         new_pixmap = pixmap.scaled(width, height)
         self.icon_label.setPixmap(new_pixmap)
 
-    def toggle_icon(self, event=None):
-        if self.toggled:
-            self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 60, 60)
-            MicButtonInitialed()
-        else:
-            self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 60, 60)
-            MicButtonClosed()
+    def SpeechRecogText(self):
+        with open(TempDirectoryPath('Status.data'), "r", encoding='utf-8') as file:
+            messages = file.read()
+            self.label.setText(messages)
+        self.update_mic_icon()
 
-        self.toggled = not self.toggled
+    def update_mic_icon(self):
+        mic_status = GetMicrophoneStatus()
+        if mic_status == "True" and not self.toggled:
+            self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 60, 60)
+            self.toggled = True
+        elif mic_status == "False" and self.toggled:
+            self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 60, 60)
+            self.toggled = False
+
 
 class MessageScreen(QWidget):
     def __init__(self, parent=None):
