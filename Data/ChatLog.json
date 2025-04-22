@@ -1,10 +1,1 @@
-[
-    {
-        "role": "user",
-        "content": "Hotel me the processor status."
-    },
-    {
-        "role": "assistant",
-        "content": "I'm assuming you meant \"What is the processor status?\"\n\nAs of now, the top processor models available in the market are from AMD Ryzen 7000 series and Intel Core 13th Gen. The latest processor models from AMD are Ryzen 9 7950X, Ryzen 9 7900X, and Ryzen 7 7700X. From Intel, the latest models are Core i9-13900K, Core i7-13700K, and Core i5-13600K."
-    }
-]
+[]

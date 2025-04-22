@@ -32,8 +32,8 @@ env_vars = dotenv_values(".env")
 Username = env_vars.get("Username")
 Assistantname = env_vars.get("Assistantname")
 
-DefaultMessage = f'''{Username}: Hello {Assistantname}, How are you?
-{Assistantname}: Welcome {Username}. I am doing well. How may I help you?'''
+DefaultMessage = f'''
+{Assistantname}: Welcome {Username}. How may I help you?'''
 
 subprocesses = []
 Functions = ["open", "close", "play", "system", "content", "google search", "youtube search"]

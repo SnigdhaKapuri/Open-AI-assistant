@@ -364,21 +364,109 @@ class InitialScreen(QWidget):
             self.toggled = False
 
 
+
 class MessageScreen(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         desktop = QApplication.desktop()
         screen_width = desktop.screenGeometry().width()
         screen_height = desktop.screenGeometry().height()
+        
+        # Main layout
         layout = QVBoxLayout()
-        label = QLabel("")
-        layout.addWidget(label)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
+
+        # Chat section
         chat_section = ChatSection()
-        layout.addWidget(chat_section)
-        self.setLayout(layout)
+        layout.addWidget(chat_section, stretch=1)
+
+        # Microphone icon setup
+        self.icon_label = QLabel()
+        pixmap = QPixmap(GraphicsDirectoryPath('Mic_on.png'))
+        new_pixmap = pixmap.scaled(60, 60)
+        self.icon_label.setPixmap(new_pixmap)
+        self.icon_label.setFixedSize(150, 150)
+        self.icon_label.setAlignment(Qt.AlignCenter)
+        
+        # Enable mouse events for the label
+        self.icon_label.setAttribute(Qt.WA_MouseTracking, True)
+        self.icon_label.setMouseTracking(True)
+        self.icon_label.mousePressEvent = self.toggle_icon  # Assign the handler
+        
+        self.toggled = True
+        self.toggle_icon()  # Initial call to set the state
+        
+        # Status label
+        self.status_label = QLabel("")
+        self.status_label.setStyleSheet("color: white; font-size:16px; margin-bottom:0;")
+        self.status_label.setAlignment(Qt.AlignCenter)
+        
+        # Add microphone and status to layout
+        mic_layout = QVBoxLayout()
+        mic_layout.addWidget(self.status_label, alignment=Qt.AlignCenter)
+        mic_layout.addWidget(self.icon_label, alignment=Qt.AlignCenter)
+        mic_layout.addStretch()
+        
+        # Combine chat and mic layouts
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(chat_section, stretch=1)
+        main_layout.addLayout(mic_layout)
+        
+        self.setLayout(main_layout)
         self.setStyleSheet("background-color: #121212;")
         self.setFixedHeight(screen_height)
         self.setFixedWidth(screen_width)
+        
+        # Timer for updating mic status
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.SpeechRecogText)
+        self.timer.start(5)
+
+    def toggle_icon(self, event=None):
+        if self.toggled:
+            self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 60, 60)
+            MicButtonClosed()  # Updates Mic.data and Status.data
+        else:
+            self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 60, 60)
+            MicButtonInitialed()  # Updates Mic.data and Status.data
+        self.toggled = not self.toggled
+
+    def load_icon(self, path, width=60, height=60):
+        pixmap = QPixmap(path)
+        new_pixmap = pixmap.scaled(width, height)
+        self.icon_label.setPixmap(new_pixmap)
+
+    def SpeechRecogText(self):
+        with open(TempDirectoryPath('Status.data'), "r", encoding='utf-8') as file:
+            messages = file.read()
+            self.status_label.setText(messages)
+        self.update_mic_icon()
+
+    def update_mic_icon(self):
+        mic_status = GetMicrophoneStatus()
+        if mic_status == "True" and not self.toggled:
+            self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 60, 60)
+            self.toggled = True
+        elif mic_status == "False" and self.toggled:
+            self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 60, 60)
+            self.toggled = False
+
+# class MessageScreen(QWidget):
+#     def __init__(self, parent=None):
+#         super().__init__(parent)
+#         desktop = QApplication.desktop()
+#         screen_width = desktop.screenGeometry().width()
+#         screen_height = desktop.screenGeometry().height()
+#         layout = QVBoxLayout()
+#         label = QLabel("")
+#         layout.addWidget(label)
+#         chat_section = ChatSection()
+#         layout.addWidget(chat_section)
+#         self.setLayout(layout)
+#         self.setStyleSheet("background-color: #121212;")
+#         self.setFixedHeight(screen_height)
+#         self.setFixedWidth(screen_width)
 
 class CustomTopBar(QWidget):
     def __init__(self, parent, stacked_widget):
