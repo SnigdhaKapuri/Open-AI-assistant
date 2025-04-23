@@ -17,6 +17,9 @@ import sys
 import os
 import json
 
+from PyQt5.QtCore import QPropertyAnimation, QEasingCurve
+from PyQt5.QtWidgets import QGraphicsOpacityEffect
+
 # Path to the JSON file storing credentials
 current_dir = os.getcwd()
 CREDENTIALS_FILE = rf"{current_dir}\Frontend\Files\credentials.json"
@@ -148,8 +151,9 @@ class ChatSection(QWidget):
     def __init__(self):
         super(ChatSection, self).__init__()
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(10, 10, 10, 10)
         layout.setSpacing(10)
+        layout.setAlignment(Qt.AlignCenter)  # Center all elements
 
         # Chat display area
         self.chat_text_edit = QTextEdit()
@@ -158,96 +162,224 @@ class ChatSection(QWidget):
         self.chat_text_edit.setFrameStyle(QFrame.NoFrame)
         self.chat_text_edit.setStyleSheet("""
             QTextEdit {
-                background-color: #1e1e1e;
+                background-color: rgba(30, 30, 30, 230);
                 color: #ffffff;
-                border-radius: 10px;
-                padding: 10px;
+                border-radius: 12px;
+                padding: 12px;
                 font-size: 14px;
+                font-family: Arial, sans-serif;
+                border: 1px solid #444444;
             }
         """)
-        layout.addWidget(self.chat_text_edit)
+        layout.addWidget(self.chat_text_edit, stretch=1)
 
-               # Horizontal layout for buttons
+        # Horizontal layout for buttons and microphone
         button_layout = QHBoxLayout()
-        button_layout.setAlignment(Qt.AlignRight)
+        button_layout.setAlignment(Qt.AlignCenter)  # Center horizontally
+        button_layout.setSpacing(15)
 
-        # Clear Chat button with attractive styling
+        # Clear Chat button
         self.clear_button = QPushButton("Clear Chat")
         self.clear_button.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
-                                            stop:0 #ff4d4d, stop:1 #ff1a1a);
+                                            stop:0 #ff3d00, stop:1 #ff9100);
                 color: white;
-                border-radius: 8px;
-                padding: 8px 15px;
-                font-size: 14px;
+                border-radius: 10px;
+                padding: 10px 20px;
+                font-size: 15px;
                 font-weight: bold;
-                border: 2px solid #cc0000;
+                font-family: Arial, sans-serif;
+                border: 2px solid #cc7000;
             }
             QPushButton:hover {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
-                                            stop:0 #ff6666, stop:1 #ff3333);
-                border: 2px solid #ff3333;
+                                            stop:0 #ff5722, stop:1 #ffab40);
+                border: 2px solid #ff9100;
             }
             QPushButton:pressed {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
-                                            stop:0 #cc0000, stop:1 #990000);
+                                            stop:0 #cc3300, stop:1 #cc7000);
             }
         """)
         self.clear_button.clicked.connect(self.clear_chat)
         button_layout.addWidget(self.clear_button)
 
+        # Microphone icon setup
+        self.icon_label = QLabel()
+        try:
+            pixmap = QPixmap(GraphicsDirectoryPath('Mic_on.png'))
+            if pixmap.isNull():
+                raise ValueError("Failed to load Mic_on.png")
+            new_pixmap = pixmap.scaled(40, 40)
+            self.icon_label.setPixmap(new_pixmap)
+        except Exception as e:
+            print(f"Error loading microphone icon: {e}")
+            self.icon_label.setText("Mic")
+        self.icon_label.setFixedSize(50, 50)
+        self.icon_label.setStyleSheet("""
+            QLabel {
+                background: transparent;
+                border-radius: 25px;
+                padding: 5px;
+                border: 1px solid #444444;
+            }
+            QLabel:hover {
+                background: rgba(33, 150, 243, 76);
+                border: 1px solid #2196f3;
+            }
+        """)
+        self.icon_label.setAttribute(Qt.WA_MouseTracking, True)
+        self.icon_label.setMouseTracking(True)
+        self.icon_label.mousePressEvent = self.toggle_icon
+
+        # Opacity effect for pulsing
+        self.opacity_effect = QGraphicsOpacityEffect()
+        self.icon_label.setGraphicsEffect(self.opacity_effect)
+        self.pulse_animation = QPropertyAnimation(self.opacity_effect, b"opacity")
+        self.pulse_animation.setDuration(1500)
+        self.pulse_animation.setLoopCount(-1)
+        self.pulse_animation.setEasingCurve(QEasingCurve.InOutSine)
+        self.pulse_animation.setStartValue(0.6)
+        self.pulse_animation.setEndValue(1.0)
+        self.pulse_animation.setKeyValueAt(0.5, 1.0)
+        self.pulse_animation.setKeyValueAt(1.0, 0.6)
+
+        self.toggled = True
+        self.toggle_icon()
+        button_layout.addWidget(self.icon_label)
+
+        # Status label
+        self.status_label = QLabel("")
+        self.status_label.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-size: 14px;
+                font-family: Arial, sans-serif;
+                font-weight: bold;
+                background: rgba(0, 0, 0, 128);
+                border-radius: 8px;
+                padding: 5px 10px;
+                border: 1px solid #444444;
+            }
+        """)
+        self.status_label.setFixedSize(150, 25)
+        self.status_label.setAlignment(Qt.AlignCenter)
+        button_layout.addWidget(self.status_label)
+
         layout.addLayout(button_layout)
-        self.setStyleSheet("background-color: #121212;")
+
+        # GIF setup
         self.gif_label = QLabel()
-        self.gif_label.setStyleSheet("border: none;")
-        movie = QMovie(GraphicsDirectoryPath('Jarvis.gif'))
-        max_gif_size_W = 480
-        max_gif_size_H = 270
-        movie.setScaledSize(QSize(max_gif_size_W, max_gif_size_H))
-        self.gif_label.setAlignment(Qt.AlignRight | Qt.AlignBottom)
-        self.gif_label.setMovie(movie)
-        movie.start()
+        self.gif_label.setStyleSheet("""
+            QLabel {
+                border: 2px solid transparent;
+                border-radius: 15px;
+                background: qradialgradient(cx:0.5, cy:0.5, radius:0.7, 
+                                            stop:0 #2196f3, stop:1 transparent);
+                padding: 5px;
+            }
+        """)
+        try:
+            movie = QMovie(GraphicsDirectoryPath('Jarvis.gif'))
+            if not movie.isValid():
+                raise ValueError("Failed to load Jarvis.gif")
+            max_gif_size_W = 400
+            max_gif_size_H = 225
+            movie.setScaledSize(QSize(max_gif_size_W, max_gif_size_H))
+            self.gif_label.setAlignment(Qt.AlignCenter)
+            self.gif_label.setMovie(movie)
+            movie.start()
+        except Exception as e:
+            print(f"Error loading GIF: {e}")
+            self.gif_label.setText("GIF")
         layout.addWidget(self.gif_label)
 
-        self.label = QLabel("")
-        self.label.setStyleSheet("color: white; font-size:16px; margin-right: 195px; border: none; margin-top: -30px;")
-        self.label.setAlignment(Qt.AlignRight)
-        layout.addWidget(self.label)
+        self.setStyleSheet("""
+            QWidget {
+                background: qradialgradient(cx:0.5, cy:0.5, radius:1, 
+                                            stop:0 #1c2526, stop:1 #121212);
+            }
+        """)
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.loadMessages)
         self.timer.timeout.connect(self.SpeechRecogText)
         self.timer.start(5)
 
-    def loadMessages(self):
-        global old_chat_message
-        with open(TempDirectoryPath('Responses.data'), "r", encoding='utf-8') as file:
-            text = file.read()
-        if text is None or len(text.strip()) <= 1 or str(old_chat_message) == str(text):
-            return
-        senders = [Username, Assistantname]
-        pattern = re.compile(
-            r'^\s*({0})\s*:'.format("|".join([re.escape(sender) for sender in senders])),
-            re.MULTILINE
-        )
-        matches = list(pattern.finditer(text))
-        messages = []
-        for i, match in enumerate(matches):
-            start = match.start()
-            end = matches[i+1].start() if i+1 < len(matches) else len(text)
-            msg = text[start:end].strip()
-            messages.append(msg)
-        for msg in messages:
-            print("msg")
-            print(msg)
-            self.addMessage(message=msg)
-        old_chat_message = text
+    def toggle_icon(self, event=None):
+        if self.toggled:
+            try:
+                self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 40, 40)
+                MicButtonClosed()
+                self.pulse_animation.stop()
+                self.opacity_effect.setOpacity(1.0)
+            except Exception as e:
+                print(f"Error toggling mic off: {e}")
+        else:
+            try:
+                self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 40, 40)
+                MicButtonInitialed()
+                self.pulse_animation.start()
+            except Exception as e:
+                print(f"Error toggling mic on: {e}")
+        self.toggled = not self.toggled
+
+    def load_icon(self, path, width=40, height=40):
+        pixmap = QPixmap(path)
+        if pixmap.isNull():
+            raise ValueError(f"Failed to load icon: {path}")
+        new_pixmap = pixmap.scaled(width, height)
+        self.icon_label.setPixmap(new_pixmap)
 
     def SpeechRecogText(self):
-        with open(TempDirectoryPath('Status.data'), "r", encoding='utf-8') as file:
-            messages = file.read()
-            self.label.setText(messages)
+        try:
+            with open(TempDirectoryPath('Status.data'), "r", encoding='utf-8') as file:
+                messages = file.read()
+                self.status_label.setText(messages)
+        except Exception as e:
+            print(f"Error reading status: {e}")
+        self.update_mic_icon()
+
+    def update_mic_icon(self):
+        try:
+            mic_status = GetMicrophoneStatus()
+            if mic_status == "True" and not self.toggled:
+                self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 40, 40)
+                self.toggled = True
+                self.pulse_animation.start()
+            elif mic_status == "False" and self.toggled:
+                self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 40, 40)
+                self.toggled = False
+                self.pulse_animation.stop()
+                self.opacity_effect.setOpacity(1.0)
+        except Exception as e:
+            print(f"Error updating mic icon: {e}")
+
+    def loadMessages(self):
+        global old_chat_message
+        try:
+            with open(TempDirectoryPath('Responses.data'), "r", encoding='utf-8') as file:
+                text = file.read()
+            if text is None or len(text.strip()) <= 1 or str(old_chat_message) == str(text):
+                return
+            senders = [Username, Assistantname]
+            pattern = re.compile(
+                r'^\s*({0})\s*:'.format("|".join([re.escape(sender) for sender in senders])),
+                re.MULTILINE
+            )
+            matches = list(pattern.finditer(text))
+            messages = []
+            for i, match in enumerate(matches):
+                start = match.start()
+                end = matches[i+1].start() if i+1 < len(matches) else len(text)
+                msg = text[start:end].strip()
+                messages.append(msg)
+            for msg in messages:
+                self.addMessage(message=msg)
+            old_chat_message = text
+        except Exception as e:
+            print(f"Error loading messages: {e}")
 
     def addMessage(self, message):
         message = message.strip()
@@ -260,7 +392,6 @@ class ChatSection(QWidget):
         else:
             color = "white"
             alignment = Qt.AlignmentFlag.AlignLeft
-        print("Message in addMessage:", message)
         cursor = self.chat_text_edit.textCursor()
         charFormat = QTextCharFormat()
         blockFormat = QTextBlockFormat()
@@ -275,17 +406,19 @@ class ChatSection(QWidget):
         self.chat_text_edit.setTextCursor(cursor)
 
     def clear_chat(self):
-        """Clear all chat messages from the QTextEdit and the Responses.data file."""
-        self.chat_text_edit.clear()
-        global old_chat_message
-        old_chat_message = ""
-        with open(TempDirectoryPath('Responses.data'), "w", encoding='utf-8') as file:
-            file.write("")
-        with open(TempDirectoryPath('Database.data'), "w", encoding='utf-8') as file:
-            file.write("")
-        with open(r'Data\ChatLog.json', "w", encoding='utf-8') as file:
-            json.dump([], file)  # Reset
-            
+        try:
+            self.chat_text_edit.clear()
+            global old_chat_message
+            old_chat_message = ""
+            with open(TempDirectoryPath('Responses.data'), "w", encoding='utf-8') as file:
+                file.write("")
+            with open(TempDirectoryPath('Database.data'), "w", encoding='utf-8') as file:
+                file.write("")
+            with open(r'Data\ChatLog.json', "w", encoding='utf-8') as file:
+                json.dump([], file)
+        except Exception as e:
+            print(f"Error clearing chat: {e}")
+
 class InitialScreen(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -371,68 +504,68 @@ class MessageScreen(QWidget):
         desktop = QApplication.desktop()
         screen_width = desktop.screenGeometry().width()
         screen_height = desktop.screenGeometry().height()
-        
+
         # Main layout
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(10)
+        layout.setSpacing(0)
 
         # Chat section
         chat_section = ChatSection()
         layout.addWidget(chat_section, stretch=1)
 
-        # Microphone icon setup
-        self.icon_label = QLabel()
+        # Microphone icon setup (floating)
+        self.icon_label = QLabel(self)
         pixmap = QPixmap(GraphicsDirectoryPath('Mic_on.png'))
-        new_pixmap = pixmap.scaled(60, 60)
+        new_pixmap = pixmap.scaled(40, 40)
         self.icon_label.setPixmap(new_pixmap)
-        self.icon_label.setFixedSize(150, 150)
-        self.icon_label.setAlignment(Qt.AlignCenter)
-        
-        # Enable mouse events for the label
+        self.icon_label.setFixedSize(50, 50)
+        self.icon_label.setStyleSheet("""
+            QLabel {
+                background: transparent;
+                border-radius: 25px;
+                padding: 5px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            }
+            QLabel:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+        """)
         self.icon_label.setAttribute(Qt.WA_MouseTracking, True)
         self.icon_label.setMouseTracking(True)
-        self.icon_label.mousePressEvent = self.toggle_icon  # Assign the handler
-        
+        self.icon_label.mousePressEvent = self.toggle_icon
+        self.icon_label.move(screen_width - 70, screen_height - 70)
+
         self.toggled = True
-        self.toggle_icon()  # Initial call to set the state
-        
+        self.toggle_icon()
+
         # Status label
         self.status_label = QLabel("")
-        self.status_label.setStyleSheet("color: white; font-size:16px; margin-bottom:0;")
+        self.status_label.setStyleSheet("color: white; font-size:14px; background: transparent;")
+        self.status_label.setFixedSize(150, 20)
         self.status_label.setAlignment(Qt.AlignCenter)
-        
-        # Add microphone and status to layout
-        mic_layout = QVBoxLayout()
-        mic_layout.addWidget(self.status_label, alignment=Qt.AlignCenter)
-        mic_layout.addWidget(self.icon_label, alignment=Qt.AlignCenter)
-        mic_layout.addStretch()
-        
-        # Combine chat and mic layouts
-        main_layout = QVBoxLayout()
-        main_layout.addWidget(chat_section, stretch=1)
-        main_layout.addLayout(mic_layout)
-        
-        self.setLayout(main_layout)
+        self.status_label.move(screen_width - 120, screen_height - 100)
+
+        self.setLayout(layout)
         self.setStyleSheet("background-color: #121212;")
         self.setFixedHeight(screen_height)
         self.setFixedWidth(screen_width)
-        
-        # Timer for updating mic status
+
+        # Timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.SpeechRecogText)
         self.timer.start(5)
 
     def toggle_icon(self, event=None):
         if self.toggled:
-            self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 60, 60)
-            MicButtonClosed()  # Updates Mic.data and Status.data
+            self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 40, 40)
+            MicButtonClosed()
         else:
-            self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 60, 60)
-            MicButtonInitialed()  # Updates Mic.data and Status.data
+            self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 40, 40)
+            MicButtonInitialed()
         self.toggled = not self.toggled
 
-    def load_icon(self, path, width=60, height=60):
+    def load_icon(self, path, width=40, height=40):
         pixmap = QPixmap(path)
         new_pixmap = pixmap.scaled(width, height)
         self.icon_label.setPixmap(new_pixmap)
@@ -446,12 +579,12 @@ class MessageScreen(QWidget):
     def update_mic_icon(self):
         mic_status = GetMicrophoneStatus()
         if mic_status == "True" and not self.toggled:
-            self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 60, 60)
+            self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 40, 40)
             self.toggled = True
         elif mic_status == "False" and self.toggled:
-            self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 60, 60)
+            self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 40, 40)
             self.toggled = False
-
+# ```
 # class MessageScreen(QWidget):
 #     def __init__(self, parent=None):
 #         super().__init__(parent)
