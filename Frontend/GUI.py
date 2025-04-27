@@ -105,7 +105,7 @@ def QueryModifier(Query):
 def SetMicrophoneStatus(Command):
     with open(rf'{TempDirPath}\Mic.data', "w", encoding='utf-8') as file:
         file.write(Command)
-    # Sync Status.data with appropriate message
+    # Ensure Status.data is updated to match Mic.data
     status_message = "Listening..." if Command == "True" else "Not Listening..."
     with open(rf'{TempDirPath}\Status.data', "w", encoding='utf-8') as file:
         file.write(status_message)
@@ -347,15 +347,16 @@ class ChatSection(QWidget):
             if mic_status == "True" and not self.toggled:
                 self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 40, 40)
                 self.toggled = True
+                SetMicrophoneStatus("True")  # Ensure Status.data is updated
                 self.pulse_animation.start()
             elif mic_status == "False" and self.toggled:
                 self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 40, 40)
                 self.toggled = False
+                SetMicrophoneStatus("False")  # Ensure Status.data is updated
                 self.pulse_animation.stop()
                 self.opacity_effect.setOpacity(1.0)
         except Exception as e:
             print(f"Error updating mic icon: {e}")
-
     def loadMessages(self):
         global old_chat_message
         try:
@@ -469,11 +470,20 @@ class InitialScreen(QWidget):
 
     def toggle_icon(self, event=None):
         if self.toggled:
-            self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 60, 60)
-            MicButtonClosed()  # Updates Mic.data and Status.data
+            try:
+                self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 40, 40)
+                SetMicrophoneStatus("False")  # Updates both Mic.data and Status.data
+                self.pulse_animation.stop()
+                self.opacity_effect.setOpacity(1.0)
+            except Exception as e:
+                print(f"Error toggling mic off: {e}")
         else:
-            self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 60, 60)
-            MicButtonInitialed()  # Updates Mic.data and Status.data
+            try:
+                self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 40, 40)
+                SetMicrophoneStatus("True")  # Updates both Mic.data and Status.data
+                self.pulse_animation.start()
+            except Exception as e:
+                print(f"Error toggling mic on: {e}")
         self.toggled = not self.toggled
 
     def load_icon(self, path, width=60, height=60):
@@ -482,9 +492,15 @@ class InitialScreen(QWidget):
         self.icon_label.setPixmap(new_pixmap)
 
     def SpeechRecogText(self):
-        with open(TempDirectoryPath('Status.data'), "r", encoding='utf-8') as file:
-            messages = file.read()
-            self.label.setText(messages)
+        try:
+            mic_status = GetMicrophoneStatus()
+            status_message = "Listening..." if mic_status == "True" else "Not Listening..."
+            self.status_label.setText(status_message)
+            # Ensure Status.data reflects the current mic status
+            with open(TempDirectoryPath('Status.data'), "w", encoding='utf-8') as file:
+                file.write(status_message)
+        except Exception as e:
+            print(f"Error reading status: {e}")
         self.update_mic_icon()
 
     def update_mic_icon(self):
@@ -558,32 +574,54 @@ class MessageScreen(QWidget):
 
     def toggle_icon(self, event=None):
         if self.toggled:
-            self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 40, 40)
-            MicButtonClosed()
+            try:
+                self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 40, 40)
+                SetMicrophoneStatus("False")
+                self.pulse_animation.stop()
+                self.opacity_effect.setOpacity(1.0)
+            except Exception as e:
+                print(f"Error toggling mic off: {e}")
         else:
-            self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 40, 40)
-            MicButtonInitialed()
+            try:
+                self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 40, 40)
+                SetMicrophoneStatus("True")
+                self.pulse_animation.start()
+            except Exception as e:
+                print(f"Error toggling mic on: {e}")
         self.toggled = not self.toggled
-
+        
     def load_icon(self, path, width=40, height=40):
         pixmap = QPixmap(path)
         new_pixmap = pixmap.scaled(width, height)
         self.icon_label.setPixmap(new_pixmap)
 
     def SpeechRecogText(self):
-        with open(TempDirectoryPath('Status.data'), "r", encoding='utf-8') as file:
-            messages = file.read()
-            self.status_label.setText(messages)
+        try:
+            mic_status = GetMicrophoneStatus()
+            status_message = "Listening..." if mic_status == "True" else "Not Listening..."
+            self.status_label.setText(status_message)
+            with open(TempDirectoryPath('Status.data'), "w", encoding='utf-8') as file:
+                file.write(status_message)
+        except Exception as e:
+            print(f"Error reading status: {e}")
         self.update_mic_icon()
-
+        
     def update_mic_icon(self):
-        mic_status = GetMicrophoneStatus()
-        if mic_status == "True" and not self.toggled:
-            self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 40, 40)
-            self.toggled = True
-        elif mic_status == "False" and self.toggled:
-            self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 40, 40)
-            self.toggled = False
+        try:
+            mic_status = GetMicrophoneStatus()
+            if mic_status == "True" and not self.toggled:
+                self.load_icon(GraphicsDirectoryPath('Mic_on.png'), 40, 40)
+                self.toggled = True
+                SetMicrophoneStatus("True")
+                self.pulse_animation.start()
+            elif mic_status == "False" and self.toggled:
+                self.load_icon(GraphicsDirectoryPath('Mic_off.png'), 40, 40)
+                self.toggled = False
+                SetMicrophoneStatus("False")
+                self.pulse_animation.stop()
+                self.opacity_effect.setOpacity(1.0)
+        except Exception as e:
+            print(f"Error updating mic icon: {e}")
 # ```
 # class MessageScreen(QWidget):
 #     def __init__(self, parent=None):
