@@ -27,24 +27,101 @@ from Backend.ImageGeneration import GenerateImages
 from datetime import datetime
 import GPUtil  # Install with: pip install gputil (for GPU status)
 import socket  # For basic internet speed check
-import random
+# Add these imports at the top of your file
+import ctypes
+import comtypes
+from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+
+# Add this initialization code after your other imports
+def initialize_volume_control():
+    """Initialize the volume control interface"""
+    devices = AudioUtilities.GetSpeakers()
+    interface = devices.Activate(
+        IAudioEndpointVolume._iid_, comtypes.CLSCTX_ALL, None)
+    return ctypes.cast(interface, ctypes.POINTER(IAudioEndpointVolume))
+
+volume_control = initialize_volume_control()
+
+# Add these volume control functions to your existing functions
+def get_current_volume():
+    """Get current volume level and mute status"""
+    try:
+        volume_level = round(volume_control.GetMasterVolumeLevelScalar() * 100)
+        is_muted = volume_control.GetMute()
+        status = "muted" if is_muted else "unmuted"
+        return f"Current volume is {volume_level}% and {status}."
+    except:
+        return "Volume information unavailable."
+
+def set_volume(level):
+    """Set volume to specific level (0-100)"""
+    try:
+        level = max(0, min(100, level))  # Clamp between 0-100
+        volume_control.SetMasterVolumeLevelScalar(level / 100, None)
+        return f"Volume set to {level}%."
+    except:
+        return "Failed to adjust volume."
+
+def increase_volume(amount=10):
+    """Increase volume by specified amount (default 10%)"""
+    try:
+        current = volume_control.GetMasterVolumeLevelScalar() * 100
+        new_level = min(100, current + amount)
+        volume_control.SetMasterVolumeLevelScalar(new_level / 100, None)
+        return f"Increased volume to {new_level}%."
+    except:
+        return "Failed to increase volume."
+
+def decrease_volume(amount=10):
+    """Decrease volume by specified amount (default 10%)"""
+    try:
+        current = volume_control.GetMasterVolumeLevelScalar() * 100
+        new_level = max(0, current - amount)
+        volume_control.SetMasterVolumeLevelScalar(new_level / 100, None)
+        return f"Decreased volume to {new_level}%."
+    except:
+        return "Failed to decrease volume."
+
+
+
+
+
+def mute_volume():
+    """Mute the volume"""
+    try:
+        current_mute = volume_control.GetMute()
+        if not current_mute:  # Only mute if not already muted
+            volume_control.SetMute(1, None)
+            return "Volume muted."
+        return "Volume is already muted."
+    except:
+        return "Failed to mute volume."
+
+def unmute_volume():
+    """Unmute the volume"""
+    try:
+        current_mute = volume_control.GetMute()
+        if current_mute:  # Only unmute if currently muted
+            volume_control.SetMute(0, None)
+            return "Volume unmuted."
+        return "Volume is already unmuted."
+    except:
+        return "Failed to unmute volume."
+
+
+# Add these commands to your Functions list
+Functions = ["open", "close", "play", "system", "content", "google search", "youtube search", 
+             "volume up", "volume down", "set volume", "mute", "unmute"]
 
 env_vars = dotenv_values(".env")
 Username = env_vars.get("Username")
 Assistantname = env_vars.get("Assistantname")
 
-StartupMessages = [
-    f"{Assistantname}: Systems online. {Assistantname} here. Let's make things easier—what can I help you with today?",
-    f"{Assistantname}: Hello {Username}, I'm ready to assist you with anything you need!",
-    f"{Assistantname}: Good day! Your personal assistant is online and at your service.",
-    f"{Assistantname}: Boot sequence complete. Welcome back, {Username}. What's our mission today?",
-    f"{Assistantname}: Hey there! {Assistantname} reporting for duty. How can I help you today?"
-]
-
-DefaultMessage = random.choice(StartupMessages)
+DefaultMessage = f'''
+{Assistantname}: Welcome {Username}. How may I help you?'''
 
 subprocesses = []
-Functions = ["open", "close", "play", "system", "content", "google search", "youtube search"]
+# Functions = ["open", "close", "play", "system", "content", "google search", "youtube search"]
 
 # Individual system status functions
 def get_battery_status():
@@ -171,7 +248,9 @@ system_metrics = {
     "processes": get_process_count,
     "load": get_system_load,
     "internet": get_internet_status,
-    "system": get_system_status  # Full report
+    "system": get_system_status , # Full report,
+    "volume": get_current_volume,
+    "sound": get_current_volume,  # Alias
 }
 
 def ShowDefaultChatIfNoChats():
@@ -249,22 +328,70 @@ def MainExecution():
             ImageExecution = True
 
     # Handle system-related queries
+   # In MainExecution(), add this to handle volume commands
     for queries in Decision:
         if not TaskExecution:
-            if any(queries.startswith(func) for func in Functions):
-                query_lower = queries.lower()
-                for metric, func in system_metrics.items():
-                    if metric in query_lower:
-                        status = func()
-                        ShowTextToScreen(f"{Assistantname}: Here's the {metric} status:\n{status}")
-                        SetAssistantStatus("Answering...")
-                        TextToSpeech(f"Here's the {metric} status: {status}")
-                        SetMicrophoneStatus("False")
-                        return True
-                # Non-system function calls
-                if "system" not in query_lower:
-                    run(Automation(list(Decision)))
-                    TaskExecution = True
+            query_lower = queries.lower()
+            if "volume up" in query_lower or "increase volume" in query_lower:
+                # Try to extract a number (e.g., "volume up 20")
+                amount = 10  # default
+                words = query_lower.split()
+                for word in words:
+                    if word.isdigit():
+                        amount = int(word)
+                        break
+                status = increase_volume(amount)
+                ShowTextToScreen(f"{Assistantname}: {status}")
+                SetAssistantStatus("Answering...")
+                TextToSpeech(status)
+                SetMicrophoneStatus("False")
+                return True
+                
+            elif "volume down" in query_lower or "decrease volume" in query_lower:
+                # Try to extract a number (e.g., "volume down 15")
+                amount = 10  # default
+                words = query_lower.split()
+                for word in words:
+                    if word.isdigit():
+                        amount = int(word)
+                        break
+                status = decrease_volume(amount)
+                ShowTextToScreen(f"{Assistantname}: {status}")
+                SetAssistantStatus("Answering...")
+                TextToSpeech(status)
+                SetMicrophoneStatus("False")
+                return True
+                
+            elif "set volume" in query_lower or "volume to" in query_lower:
+                # Try to extract a number (e.g., "set volume to 50")
+                amount = 50  # default if no number specified
+                words = query_lower.split()
+                for word in words:
+                    if word.isdigit():
+                        amount = int(word)
+                        break
+                status = set_volume(amount)
+                ShowTextToScreen(f"{Assistantname}: {status}")
+                SetAssistantStatus("Answering...")
+                TextToSpeech(status)
+                SetMicrophoneStatus("False")
+                return True
+                
+            elif "mute" in query_lower and "unmute" not in query_lower:
+                status = mute_volume()
+                ShowTextToScreen(f"{Assistantname}: {status}")
+                SetAssistantStatus("Answering...")
+                TextToSpeech(status)
+                SetMicrophoneStatus("False")
+                return True
+                
+            elif "unmute" in query_lower:
+                status = unmute_volume()
+                ShowTextToScreen(f"{Assistantname}: {status}")
+                SetAssistantStatus("Answering...")
+                TextToSpeech(status)
+                SetMicrophoneStatus("False")
+                return True
 
     if ImageExecution:
         GenerateImages(ImageGenerationQuery)
